@@ -173,6 +173,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " taylor_green_scaling | "
                       " euler_bump_optimization | "
                       " euler_naca_optimization | "
+                      " euler_naca_optimization_constrained | "
+                      " euler_naca_drag_optimization_lift_constrained | "
+                      " viscous_naca_optimization | "
                       " shock_1d | "
                       " euler_naca0012 | "
                       " reduced_order | "
@@ -215,6 +218,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " taylor_green_scaling | "
                       "  euler_bump_optimization | "
                       "  euler_naca_optimization | "
+                      " euler_naca_optimization_constrained | "
+                      " euler_naca_drag_optimization_lift_constrained | "
+                      " viscous_naca_optimization | "
                       "  shock_1d | "
                       "  euler_naca0012 | "
                       "  convection_diffusion_periodicity |"
@@ -399,6 +405,9 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "taylor_green_scaling")                     { test_type = taylor_green_scaling; }
     else if (test_string == "euler_bump_optimization")                  { test_type = euler_bump_optimization; }
     else if (test_string == "euler_naca_optimization")                  { test_type = euler_naca_optimization; }
+    else if (test_string == "euler_naca_optimization_constrained")      { test_type = euler_naca_optimization_constrained; }
+    else if (test_string == "euler_naca_drag_optimization_lift_constrained") { test_type = euler_naca_drag_optimization_lift_constrained; }
+    else if (test_string == "viscous_naca_optimization")                { test_type = viscous_naca_optimization; }
     else if (test_string == "shock_1d")                                 { test_type = shock_1d; }
     else if (test_string == "reduced_order")                            { test_type = reduced_order; }
     else if (test_string == "POD_adaptation")                           { test_type = POD_adaptation; }

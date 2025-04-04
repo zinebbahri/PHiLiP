@@ -4,6 +4,9 @@ set(TESTS_SOURCE
     flow_constraints.cpp
     rol_objective.cpp
     full_space_step.cpp
+    sequential_quadratic_programming.cpp
+    primal_dual_active_set.cpp
+    pdas_kkt_system.cpp
     )
 
 add_subdirectory(design_parameterization)

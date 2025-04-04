@@ -513,12 +513,12 @@ int main(int argc, char *argv[])
 
     dealii::TrilinosWrappers::BlockSparseMatrix kkt_hessian;
     kkt_hessian.reinit(3,3);
-    kkt_hessian.block(0, 0).copy_from( *functional.d2IdWdW);
-    kkt_hessian.block(0, 1).copy_from( *functional.d2IdWdX);
+    kkt_hessian.block(0, 0).copy_from( *(functional.d2IdWdW));
+    kkt_hessian.block(0, 1).copy_from( *(functional.d2IdWdX));
     kkt_hessian.block(0, 2).copy_from( dRdW_transpose);
 
     kkt_hessian.block(1, 0).copy_from( d2IdXdW);
-    kkt_hessian.block(1, 1).copy_from( *functional.d2IdXdX);
+    kkt_hessian.block(1, 1).copy_from( *(functional.d2IdXdX));
     kkt_hessian.block(1, 2).copy_from( dRdX_transpose);
 
     kkt_hessian.block(2, 0).copy_from( dg->system_matrix);

@@ -89,7 +89,7 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
 template <int dim, int nstate>
 double NACA0012<dim,nstate>::compute_lift(std::shared_ptr<DGBase<dim, double>> dg) const
 {
-    LiftDragFunctional<dim,dim+2,double,Triangulation> lift_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::lift);
+    LiftDragFunctional<dim,dim+2,double> lift_functional(dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift);
     const double lift = lift_functional.evaluate_functional();
     return lift;
 }
@@ -97,7 +97,7 @@ double NACA0012<dim,nstate>::compute_lift(std::shared_ptr<DGBase<dim, double>> d
 template <int dim, int nstate>
 double NACA0012<dim,nstate>::compute_drag(std::shared_ptr<DGBase<dim, double>> dg) const
 {
-    LiftDragFunctional<dim,dim+2,double,Triangulation> drag_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::drag);
+    LiftDragFunctional<dim,dim+2,double> drag_functional(dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag);
     const double drag = drag_functional.evaluate_functional();
     return drag;
 }

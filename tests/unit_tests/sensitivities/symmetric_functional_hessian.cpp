@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
         Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&functional.d2IdWdW->trilinos_matrix()));
         epmt.CreateTranspose(false, transpose_CrsMatrix);
         d2IdWdW_transpose.reinit(*transpose_CrsMatrix);
-        d2IdWdW_transpose.add(-1.0,*functional.d2IdWdW);
+        d2IdWdW_transpose.add(-1.0,*(functional.d2IdWdW));
     }
 
     dealii::TrilinosWrappers::SparseMatrix d2IdXdX_transpose;
@@ -244,7 +244,7 @@ int main(int argc, char *argv[])
         Epetra_RowMatrixTransposer epmt(const_cast<Epetra_CrsMatrix *>(&functional.d2IdXdX->trilinos_matrix()));
         epmt.CreateTranspose(false, transpose_CrsMatrix);
         d2IdXdX_transpose.reinit(*transpose_CrsMatrix);
-        d2IdXdX_transpose.add(-1.0,*functional.d2IdXdX);
+        d2IdXdX_transpose.add(-1.0,*(functional.d2IdXdX));
     }
     // {
     //     dealii::FullMatrix<double> fullA(functional.d2IdWdW.m());

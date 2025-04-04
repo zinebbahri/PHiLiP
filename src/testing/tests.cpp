@@ -25,7 +25,7 @@
 #include "TGV_scaling.h"
 #include "optimization_inverse_manufactured/optimization_inverse_manufactured.h"
 #include "euler_bump_optimization.h"
-#include "euler_naca0012_optimization.hpp"
+#include "naca0012_optimization/euler_naca0012_optimization.hpp"
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
 #include "reduced_order.h"
@@ -271,7 +271,15 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerBumpOptimization<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca_optimization) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACAOptimization<dim,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::shock_1d) {
+    }  else if(test_type == Test_enum::euler_naca_drag_optimization_lift_constrained) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACADragOptimizationLiftConstrained<dim,nstate>>(parameters_input);
+    } else if(test_type == Test_enum::viscous_naca_optimization) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<ViscousNACAOptimization<dim,nstate>>(parameters_input);
+    }
+    // else if(test_type == Test_enum::euler_naca_optimization_constrained) {
+    //     if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACAOptimizationConstrained<dim,nstate>>(parameters_input);
+    // } 
+    else if(test_type == Test_enum::shock_1d) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::reduced_order) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1)) return std::make_unique<ReducedOrder<dim,nstate>>(parameters_input, parameter_handler_input);
@@ -283,9 +291,11 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::dual_weighted_residual_mesh_adaptation) {
         if constexpr (dim==2 && nstate==1)  return std::make_unique<DualWeightedResidualMeshAdaptation<dim, nstate>>(parameters_input,parameter_handler_input);
-    } else if(test_type == Test_enum::anisotropic_mesh_adaptation) {
-        if constexpr( (dim==2 && nstate==1) || (dim==2 && nstate==dim+2)) return std::make_unique<AnisotropicMeshAdaptationCases<dim, nstate>>(parameters_input,parameter_handler_input);
-    } else if(test_type == Test_enum::taylor_green_vortex_energy_check) {
+    } 
+    // else if(test_type == Test_enum::anisotropic_mesh_adaptation) {
+    //     if constexpr( (dim==2 && nstate==1) || (dim==2 && nstate==dim+2)) return std::make_unique<AnisotropicMeshAdaptationCases<dim, nstate>>(parameters_input,parameter_handler_input);
+    // } 
+    else if(test_type == Test_enum::taylor_green_vortex_energy_check) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexEnergyCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::taylor_green_vortex_restart_check) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexRestartCheck<dim,nstate>>(parameters_input,parameter_handler_input);

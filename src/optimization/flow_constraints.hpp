@@ -118,6 +118,9 @@ public:
         const ROL::Vector<double>& des_var_ctl,
         double &/*tol*/ 
         ) override;
+
+    /// Returns the l2 norm defined by DG instead of the l2 norm of the solution.
+    double dg_l2_norm( const ROL::Vector<double>& des_var_sim, const ROL::Vector<double>& des_var_ctl);
     
     /// Applies the Jacobian of the Constraints w.\ r.\ t.\ the simulation variables onto a vector.
     void applyJacobian_1(

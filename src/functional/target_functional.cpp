@@ -1,23 +1,26 @@
 // includes
-#include "target_functional.h"
+#include <vector>
+
+#include <Sacado.hpp>
+#include <deal.II/lac/la_parallel_vector.h>
 
 #include <deal.II/base/qprojector.h>
+
 #include <deal.II/differentiation/ad/sacado_math.h>
 #include <deal.II/differentiation/ad/sacado_number_types.h>
 #include <deal.II/differentiation/ad/sacado_product_types.h>
-#include <deal.II/dofs/dof_tools.h>
+
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
-#include <deal.II/lac/la_parallel_vector.h>
 
-#include <Sacado.hpp>
-#include <vector>
+#include <deal.II/dofs/dof_tools.h>
 
-#include "dg/dg_base.hpp"
-#include "physics/model.h"
-#include "physics/model_factory.h"
 #include "physics/physics.h"
 #include "physics/physics_factory.h"
+#include "physics/model.h"
+#include "physics/model_factory.h"
+#include "dg/dg_base.hpp"
+#include "target_functional.h"
 
 namespace PHiLiP {
 template<int dim, typename real1, typename real2>
@@ -163,8 +166,8 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
         (void) quad_weight;
         volume_local_sum += volume_integrand;// * jacobian_determinant * quad_weight;
         if (volume_local_sum != 0.0 && jacobian_determinant < 0) {
-            std::cout << "Bad jacobian... setting volume_local_sum *= 1e200" << std::endl;
-            volume_local_sum += 1e200;
+            std::cout << "Bad jacobian... setting volume_local_sum *= 1.456e200" << std::endl;
+            volume_local_sum += 1.8768e200;
         }
     }
     return volume_local_sum;

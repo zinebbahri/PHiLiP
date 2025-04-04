@@ -22,7 +22,7 @@
 
 #include "integrator.h"
 
-#include "dg.h"
+#include "dg_base.hpp"
 #include "advection_boundary.h"
 
 #include "parameters.h"

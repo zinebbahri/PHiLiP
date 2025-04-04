@@ -7,7 +7,7 @@
 
 #include <deal.II/lac/vector.h>
 
-#include "dg.h"
+#include "dg_base.hpp"
 #include "boundary.h"
 
 #include "manufactured_solution.h"

@@ -8,12 +8,8 @@ namespace PHiLiP {
 /** Target boundary values.
  *  Simply zero out the default volume contribution.
  */
-#if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
-#else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
-#endif
-class LiftDragFunctional : public Functional<dim, nstate, real, MeshType>
+template <int dim, int nstate, typename real>
+class LiftDragFunctional : public Functional<dim, nstate, real>
 {
 public:
     /// @brief Switch between lift and drag functional types.
@@ -27,7 +23,7 @@ private:
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
      *  to our derived class even though we don't need it.
      */
-    using Functional<dim,nstate,real,MeshType>::evaluate_volume_integrand;
+    using Functional<dim,nstate,real>::evaluate_volume_integrand;
 
     /// @brief Switches between lift and drag.
     const Functional_types functional_type;
@@ -61,29 +57,122 @@ private:
     const double force_dimensionalization_factor;
 
     /// Compute force dimensionalization factor.
-    double initialize_force_dimensionalization_factor();
+    double initialize_force_dimensionalization_factor()
+    {
+        const double ref_length  = euler_fad_fad.ref_length;
+        const double dynamic_pressure_inf  = euler_fad_fad.dynamic_pressure_inf;
+
+        return 1.0 / (ref_length * dynamic_pressure_inf);
+    }
 
     /// Initialize rotation matrix based on given angle of attack.
-    dealii::Tensor<2,dim,double> initialize_rotation_matrix(const double angle_of_attack);
+    dealii::Tensor<2,dim,double> initialize_rotation_matrix (const double angle_of_attack)
+    {
+        dealii::Tensor<2,dim,double> rotation_matrix;
+        if constexpr (dim == 1) {
+            assert(false);
+        }
+
+        rotation_matrix[0][0] = cos(angle_of_attack);
+        rotation_matrix[0][1] = -sin(angle_of_attack);
+        rotation_matrix[1][0] = sin(angle_of_attack);
+        rotation_matrix[1][1] = cos(angle_of_attack);
+
+        if constexpr (dim == 3) {
+            rotation_matrix[0][2] = 0.0;
+            rotation_matrix[1][2] = 0.0;
+
+            rotation_matrix[2][0] = 0.0;
+            rotation_matrix[2][1] = 0.0;
+            rotation_matrix[2][2] = 1.0;
+        }
+
+        return rotation_matrix;
+    }
 
     /// Initialize lift vector with given rotation matrix based on angle of attack.
     /** Use convention that lift is in the positive y-direction.
      */
-    dealii::Tensor<1,dim,double> initialize_lift_vector(const dealii::Tensor<2,dim,double> &rotation_matrix);
+    dealii::Tensor<1,dim,double> initialize_lift_vector (const dealii::Tensor<2,dim,double> &rotation_matrix)
+    {
+        dealii::Tensor<1,dim,double> lift_direction;
+        lift_direction[0] = 0.0;
+        lift_direction[1] = 1.0;
+
+        if constexpr (dim == 1) {
+            assert(false);
+        }
+        if constexpr (dim == 3) {
+            lift_direction[2] = 0.0;
+        }
+
+        dealii::Tensor<1,dim,double> vec;
+        vec = rotation_matrix * lift_direction;
+
+        return vec;
+    }
 
     /// Initialize drag vector with given rotation matrix based on angle of attack.
     /** Use convention that drag is in the positive x-direction.
      */
-    dealii::Tensor<1,dim,double> initialize_drag_vector(const dealii::Tensor<2,dim,double> &rotation_matrix);
+    dealii::Tensor<1,dim,double> initialize_drag_vector (const dealii::Tensor<2,dim,double> &rotation_matrix)
+    {
+        dealii::Tensor<1,dim,double> drag_direction;
+        drag_direction[0] = 1.0;
+        drag_direction[1] = 0.0;
+
+        if constexpr (dim == 1) {
+            assert(false);
+        }
+        if constexpr (dim == 3) {
+            drag_direction[2] = 0.0;
+        }
+
+        dealii::Tensor<1,dim,double> vec;
+        vec = rotation_matrix * drag_direction;
+
+        return vec;
+    }
+   
 
 public:
     /// Constructor
     LiftDragFunctional(
-        std::shared_ptr<DGBase<dim,real,MeshType>> dg_input,
-        const Functional_types functional_type);
-    /// Destructor
+        std::shared_ptr<DGBase<dim,real>> dg_input,
+        const Functional_types functional_type)
+        : Functional<dim,nstate,real>(dg_input)
+        , functional_type(functional_type)
+        , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
+        , angle_of_attack(euler_fad_fad.angle_of_attack)
+        , rotation_matrix(initialize_rotation_matrix(angle_of_attack))
+        , lift_vector(initialize_lift_vector(rotation_matrix))
+        , drag_vector(initialize_drag_vector(rotation_matrix))
+        , force_dimensionalization_factor(initialize_force_dimensionalization_factor())
+    {
+        switch(functional_type) {
+            case Functional_types::lift : force_vector = lift_vector; break;
+            case Functional_types::drag : force_vector = drag_vector; break;
+            default: break;
+        }
+    }
 
-    real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override;
+    real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override
+    {
+        //if(Functional<dim,nstate,real>::dg->get_residual_l2norm() > 1e-9) return 1.7e199;
+        double value = Functional<dim,nstate,real>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);
+
+        if (functional_type == Functional_types::lift) {
+            //this->pcout << "Lift value: " << value << "\n";
+            //std::cout << "Lift value: " << value << std::cout;
+            //std::cout << "Lift value: " << value << std::cout;
+        }
+        if (functional_type == Functional_types::drag) {
+            //this->pcout << "Drag value: " << value << "\n";
+            value = abs(value);
+        }
+
+        return value;
+    }
 
 public:
     /// Virtual function for computation of cell boundary functional term
@@ -131,7 +220,6 @@ public:
             soln_at_q,
             soln_grad_at_q);
     }
-
     /// Virtual function for Sacado computation of cell boundary functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
     virtual FadFadType evaluate_boundary_integrand(
@@ -159,7 +247,6 @@ public:
         const std::array<real,nstate> &/*soln_at_q*/,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_at_q*/) const
     { return (real) 0.0; }
-
     /// Virtual function for Sacado computation of cell volume functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
     virtual FadFadType evaluate_volume_integrand(

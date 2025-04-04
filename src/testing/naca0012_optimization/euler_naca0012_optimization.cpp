@@ -66,11 +66,11 @@ enum BirosGhattasPreconditioner { P2, P2A, P4, P4A, identity };
 //const std::vector<BirosGhattasPreconditioner> precond_list { P2, P2A, P4, P4A };
 const std::vector<BirosGhattasPreconditioner> precond_list { P2A };//, P2, P4, P4A };
 //const std::vector<BirosGhattasPreconditioner> precond_list { P2A };
-const std::vector<OptimizationAlgorithm> opt_list { reduced_space_bfgs, full_space_birosghattas, reduced_space_newton };
+// const std::vector<OptimizationAlgorithm> opt_list { reduced_space_bfgs, full_space_birosghattas, reduced_space_newton };
 //const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_bfgs, reduced_space_newton };
 //const std::vector<OptimizationAlgorithm> opt_list { reduced_space_newton };
 //const std::vector<OptimizationAlgorithm> opt_list { full_space_birosghattas, reduced_space_bfgs};
-//const std::vector<OptimizationAlgorithm> opt_list { reduced_space_bfgs};
+const std::vector<OptimizationAlgorithm> opt_list { reduced_space_bfgs};
 
 const unsigned int POLY_START = 0;
 const unsigned int POLY_END = 1; // Can do until at least P2
@@ -578,8 +578,9 @@ int EulerNACAOptimization<dim,nstate>
 
     TargetWallPressure<dim,nstate,double> target_wall_pressure_functional(dg, target_solution);
 
-    LiftDragFunctional<dim,nstate,double,Triangulation> lift_functional( dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::lift );
-    LiftDragFunctional<dim,nstate,double,Triangulation> drag_functional( dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::drag );
+    LiftDragFunctional<dim,nstate,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
+    LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
+    // Functional<dim,nstate,double, Triangulation> lift_functional_test( dg, LiftDragFunctional<dim,dim+2,double, Triangulation>::Functional_types::lift );
 
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
@@ -588,7 +589,7 @@ int EulerNACAOptimization<dim,nstate>
     double lift_target = lift_functional.evaluate_functional() * 1.01;
     //double lift_target = lift_functional.evaluate_functional() * 2.0;
     //const double lift_penalty = 1;//0.1;
-    const double lift_penalty = 1;
+    const double lift_penalty = 10;
 
 
     ffd.output_ffd_vtu(8999);
@@ -601,9 +602,11 @@ int EulerNACAOptimization<dim,nstate>
     precomputed_dXvdXp->copy_from(con->dXvdXp);
     //int flow_constraints_check_error = check_flow_constraints<dim,nstate>( nx_ffd, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
     std::cout << " Constructing lift ROL objective " << std::endl;
+    // auto lift_obj_test = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional_test, design_parameterization, precomputed_dXvdXp);
     auto lift_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp);
     std::cout << " Constructing lift ROL constraint " << std::endl;
     auto lift_con = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (lift_obj, lift_target);
+    // auto thickness_con = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (lift_obj, lift_target);
 
     //int objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, lift_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
@@ -613,15 +616,17 @@ int EulerNACAOptimization<dim,nstate>
     //objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, drag_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
     std::cout << " Constructing drag quadratic penalty lift ROL objective " << std::endl;
-    ROL::SingletonVector<double> zero_lagrange_mult(0.0);
+    ROL::SingletonVector<double> zero_lagrange_mult(1.0);
     ROL::SingletonVector<double> single_contraint(0.0);
     ROL::ParameterList empty_parlist;
 
-    //auto drag_quad_penalty_lift = ROL::makePtr<ROL::AugmentedLagrangian_SimOpt<double>> (drag_obj, lift_con, zero_lagrange_mult, lift_penalty, *des_var_sim_rol_p, *des_var_ctl_rol_p, single_contraint, empty_parlist);
-    //auto obj = drag_quad_penalty_lift;
+    auto drag_quad_penalty_lift = ROL::makePtr<ROL::AugmentedLagrangian_SimOpt<double>> (drag_obj, lift_con, zero_lagrange_mult, lift_penalty, *des_var_sim_rol_p, *des_var_ctl_rol_p, single_contraint, empty_parlist);
+    auto obj = drag_quad_penalty_lift;
 
     auto pressure_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_wall_pressure_functional, design_parameterization, precomputed_dXvdXp);
-    auto obj = pressure_obj;
+    // auto obj = pressure_obj;
+    // auto obj = drag_obj;
+    // auto obj = lift_obj;
 
     //objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 

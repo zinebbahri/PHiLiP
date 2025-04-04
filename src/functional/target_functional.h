@@ -2,20 +2,23 @@
 #define __TARGET_FUNCTIONAL_H__
 
 /* includes */
+#include <vector>
+#include <iostream>
+
+#include <Sacado.hpp>
+
+#include <deal.II/lac/la_parallel_vector.h>
+
 #include <deal.II/differentiation/ad/sacado_math.h>
 #include <deal.II/differentiation/ad/sacado_number_types.h>
 #include <deal.II/differentiation/ad/sacado_product_types.h>
+
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
-#include <deal.II/lac/la_parallel_vector.h>
-
-#include <Sacado.hpp>
-#include <iostream>
-#include <vector>
 
 #include "dg/dg_base.hpp"
-#include "functional.h"
 #include "physics/physics.h"
+#include "functional.h"
 
 namespace PHiLiP {
 
@@ -145,6 +148,9 @@ public:
         std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
+
+    /// Destructor
+    ~TargetFunctional(){}
 
 public:
     /// Evaluates the functional derivative with respect to the solution variable

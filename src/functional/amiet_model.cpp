@@ -318,7 +318,7 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     AssertDimension(i_int_derivative, n_total_int_indep+dim*n_total_int_indep);
 
     real dId_boundary_layer_thickness = OASPL_fad.dx(i_int_derivative++);
-    real dId_edge_velocity            = OASPL_fad.dx(i_int_derivative++);
+     [[maybe_unused]] real dId_edge_velocity            = OASPL_fad.dx(i_int_derivative++);
     real dId_maximum_shear_stress     = OASPL_fad.dx(i_int_derivative++);
     AssertDimension(i_int_derivative, n_total_int_indep+dim*n_total_int_indep+3);
 
@@ -363,11 +363,24 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
         }
     }
 
-    for(int i=0;i<n_total_int_indep;++i){
+    // for(int i=0;i<n_total_int_indep;++i){
+    //     dIdW_int_FD[i] = dId_boundary_layer_thickness*d_boundary_layer_thickness_dW_int[i] 
+    //                    + dId_edge_velocity*d_edge_velocity_dW_int[i] 
+    //                    + dId_maximum_shear_stress*d_maximum_shear_stress_dW_int[i];
+                // writing OASPL value to file
+        // std::ofstream outfile_dIdW_FD;
+        // outfile_dIdW_FD.open("dIdW_FD.dat"); 
+       
+        for(int i=0;i<n_total_int_indep;++i){
         dIdW_int_FD[i] = dId_boundary_layer_thickness*d_boundary_layer_thickness_dW_int[i] 
-                       + dId_edge_velocity*d_edge_velocity_dW_int[i] 
-                       + dId_maximum_shear_stress*d_maximum_shear_stress_dW_int[i];
+                       + dId_edge_velocity*d_edge_velocity_dW_int[i];
+        // outfile_dIdW_FD << dId_boundary_layer_thickness*d_boundary_layer_thickness_dW_int[i] << "\t\t";
+        // outfile_dIdW_FD << dId_edge_velocity*d_edge_velocity_dW_int[i] << "\t\t";
+        // outfile_dIdW_FD << dId_maximum_shear_stress*d_maximum_shear_stress_dW_int[i] << "\n";
+    
     }
+    // outfile_dIdW_FD << "FD PART DONE" << "\n";
+
 
     for(int int_i=0;int_i<number_of_total_sampling;++int_i){
         for(int s=0;s<nstate;++s){
@@ -390,15 +403,24 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
         dIdW_grad_int_FD[i] = dId_maximum_shear_stress*d_maximum_shear_stress_dW_grad_int[i];
     }
 
+    std::ofstream outfile_dIdW_term1;
+    std::ofstream outfile_dIdW_term2;
+    outfile_dIdW_term1.open("dIdW_term1.dat");
+    outfile_dIdW_term2.open("dIdW_term2.dat");
+
     std::vector<real> dIdw(this->dg->dof_handler.n_dofs());
     for(long unsigned int col=0;col<dIdw.size();++col){
         for(int row=0;row<n_total_int_indep;++row){
             dIdw[col] += (dIdW_int_AD[row]+dIdW_int_FD[row])*dW_int_dW[row][col];
+            // dIdw[col] += (dIdW_int_AD[row])*dW_int_dW[row][col];
+            outfile_dIdW_term1 << (dIdW_int_AD[row]+dIdW_int_FD[row])*dW_int_dW[row][col] << "\n";
         }
     }
     for(long unsigned int col=0;col<dIdw.size();++col){
         for(int row=0;row<dim*n_total_int_indep;++row){
             dIdw[col] += (dIdW_grad_int_AD[row]+dIdW_grad_int_FD[row])*dW_grad_int_dW[row][col];
+            // dIdw[col] += (dIdW_grad_int_AD[row])*dW_grad_int_dW[row][col];
+            outfile_dIdW_term2 << (dIdW_grad_int_AD[row]+dIdW_grad_int_FD[row])*dW_grad_int_dW[row][col] << "\n";
         }
     }
 
@@ -409,6 +431,8 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
             this->dIdw[col] = dIdw[col];
         }
     }
+    outfile_dIdW_term1.close();
+    outfile_dIdW_term2.close();
 
     this->current_functional_value = OASPL_fad.val();
 

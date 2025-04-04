@@ -54,7 +54,7 @@ public:
     using ROL::Constraint_SimOpt<double>::applyAdjointJacobian_2;
 
     /// Constructor.
-    explicit ConstraintFromObjective_SimOpt(
+    ConstraintFromObjective_SimOpt(
         const ROL::Ptr<ROL::Objective_SimOpt<Real> > &obj,
         const Real offset = 0 )
         : obj_(obj)

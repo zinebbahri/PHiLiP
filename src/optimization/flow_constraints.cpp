@@ -133,7 +133,22 @@ void FlowConstraints<dim>
     auto &constraint = ROL_vector_to_dealii_vector_reference(constraint_values);
     constraint = dg->right_hand_side;
 }
-    
+
+template<int dim>
+double FlowConstraints<dim>
+::dg_l2_norm(
+    const ROL::Vector<double>& des_var_sim,
+    const ROL::Vector<double>& des_var_ctl
+    )
+{
+
+    update_1(des_var_sim);
+    update_2(des_var_ctl);
+
+    dg->assemble_residual();
+    return dg->get_residual_l2norm ();
+}
+
 template<int dim>
 void FlowConstraints<dim>
 ::applyJacobian_1(

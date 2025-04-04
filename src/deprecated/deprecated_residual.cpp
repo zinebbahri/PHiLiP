@@ -17,7 +17,7 @@
 //#include <deal.II/differentiation/ad/sacado_number_types.h>
 #include <deal.II/differentiation/ad/sacado_product_types.h>
 
-#include "dg.h"
+#include "dg_base.hpp"
 #include "physics/physics_factory.h"
 
 namespace PHiLiP {

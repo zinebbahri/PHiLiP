@@ -1307,18 +1307,18 @@ FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
                      nstate==(dim+2) && 
                      std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value)
         {
-            return std::make_shared<LiftDragFunctional<dim,nstate,real,MeshType>>(
+            return std::make_shared<LiftDragFunctional<dim,nstate,real>>(
                 dg,
-                LiftDragFunctional<dim,dim+2,double,MeshType>::Functional_types::lift);
+                LiftDragFunctional<dim,dim+2,double>::Functional_types::lift);
         }
     }else if(functional_type == FunctionalTypeEnum::drag){
         if constexpr(dim==2 && 
                      nstate==(dim+2) && 
                      std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value)
         {
-            return std::make_shared<LiftDragFunctional<dim,nstate,real,MeshType>>(
+            return std::make_shared<LiftDragFunctional<dim,nstate,real>>(
                 dg,
-                LiftDragFunctional<dim,dim+2,double,MeshType>::Functional_types::drag);
+                LiftDragFunctional<dim,dim+2,double>::Functional_types::drag);
         }
     }else if(functional_type == FunctionalTypeEnum::solution_integral) {
         std::shared_ptr< DGBaseState<dim,nstate,double,MeshType>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double, MeshType>>(dg);

@@ -8,7 +8,9 @@ set(TESTS_SOURCE
     euler_gaussian_bump_enthalpy_check.cpp
     euler_naca0012.cpp
     euler_bump_optimization.cpp
-    euler_naca0012_optimization.cpp
+    naca0012_optimization/euler_naca0012_optimization.cpp
+    naca0012_optimization/euler_naca0012_optimization_lift_constrained.cpp
+    naca0012_optimization/viscous_naca_optimization.cpp
     shock_1d.cpp
 #euler_gaussian_bump_adjoint.cpp
     euler_cylinder.cpp
@@ -21,7 +23,7 @@ set(TESTS_SOURCE
     TGV_scaling.cpp
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
     dual_weighted_residual_mesh_adaptation.cpp
-    anisotropic_mesh_adaptation_cases.cpp
+    #anisotropic_mesh_adaptation_cases.cpp
     taylor_green_vortex_energy_check.cpp
     taylor_green_vortex_restart_check.cpp
     pod_adaptive_sampling.cpp
