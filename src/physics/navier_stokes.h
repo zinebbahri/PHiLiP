@@ -77,6 +77,26 @@ public:
         const std::array<real2,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
 
+    std::array<dealii::Tensor<1,dim,real>,nstate> 
+    convert_conservative_gradient_to_primitive_gradient_untemplated (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const override;
+
+    // /** Obtain gradient of conservative variables from gradient of primitive variables */ //***ADDED this in order to overload first function
+    // std::array<dealii::Tensor<1,dim,real>,nstate> 
+    // convert_primitive_gradient_to_conservative_gradient (
+    //     const std::array<real,nstate> &primitive_soln,
+    //     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const = 0;
+ 
+ /** Nondimensionalized viscous stress tensor, tau*
+     *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
+     */
+    template<typename real2>
+    dealii::Tensor<2,dim,real2>
+    compute_viscous_stress_tensor_from_conservative_templated (
+        const std::array<real2,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
+
     /** Nondimensionalized temperature gradient */
     template<typename real2>
     dealii::Tensor<1,dim,real2> compute_temperature_gradient (
@@ -251,6 +271,11 @@ public:
     compute_viscous_stress_tensor (
         const std::array<real2,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
+
+    dealii::Tensor<2,dim,real>
+    compute_viscous_stress_tensor_untemplated (
+        const std::array<real,nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const override;
 
     /** Nondimensionalized viscous flux (i.e. dissipative flux)
      *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)

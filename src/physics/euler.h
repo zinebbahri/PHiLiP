@@ -210,6 +210,14 @@ public:
     ///
     /// Opposite of convert_primitive_to_conservative
     template<typename real2>
+    std::array<real2,nstate> convert_conservative_to_primitive_templated ( const std::array<real2,nstate> &conservative_soln ) const;
+
+
+    /// Given conservative variables [density, [momentum], total energy],
+    /// returns primitive variables [density, [velocities], pressure].
+    ///
+    /// Opposite of convert_primitive_to_conservative
+    template<typename real2>
     std::array<real2,nstate> convert_conservative_to_primitive ( const std::array<real2,nstate> &conservative_soln ) const;
 
     /// Given primitive variables [density, [velocities], pressure],
@@ -217,6 +225,13 @@ public:
     ///
     /// Opposite of convert_primitive_to_conservative
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
+
+ /** Obtain gradient of primitive variables from gradient of conservative variables */
+    template<typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,nstate> 
+    convert_conservative_gradient_to_primitive_gradient_templated (
+        const std::array<real2,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
 
     /// Evaluate pressure from conservative variables
     template<typename real2>

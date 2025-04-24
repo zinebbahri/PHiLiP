@@ -40,6 +40,7 @@
 
 #include "optimization/rol_to_dealii_vector.hpp"
 #include "optimization/flow_constraints.hpp"
+// #include "optimization/rol_objective_acoustic.hpp"
 #include "optimization/rol_objective.hpp"
 #include "optimization/constraintfromobjective_simopt.hpp"
 
@@ -55,6 +56,9 @@
 #include "functional/geometric_volume.hpp"
 #include "functional/target_wall_pressure.hpp"
 #include "optimization/design_parameterization/ffd_parameterization.hpp"
+#include "functional/extraction_functional.hpp"
+#include "functional/amiet_model.hpp"
+#include "functional/acoustic_adjoint.hpp"
 
 #include "global_counter.hpp"
 
@@ -92,8 +96,8 @@ const std::vector<OptimizationAlgorithm> opt_list {
     OptimizationAlgorithm::reduced_space_bfgs,
     };
 
-const unsigned int POLY_START = 0;
-const unsigned int POLY_END = 0; // Can do until at least P2
+const unsigned int POLY_START = 2;
+const unsigned int POLY_END = 2; // Can do until at least P2
 
 //const unsigned int n_des_var_start = 10;//20;
 //const unsigned int n_des_var_end   = 40;//100;
@@ -961,10 +965,11 @@ int ViscousNACAOptimization<dim,nstate>
         if (dim==2) {
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",1);
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref"+std::to_string(level)+".msh",1);
-            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref3.msh",1);
-            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", 1);
-            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", true, 1, false);
-            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh", 1);
+            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref3.msh",1);
+            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", 1);
+            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", true, 1, false);
+            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh", 1);
+            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref4.msh", 1);
             //naca0012_mesh->refine_global();
             dg->set_high_order_grid(naca0012_mesh);
         }
@@ -1026,8 +1031,29 @@ int ViscousNACAOptimization<dim,nstate>
     ZMomentFunctional<dim,nstate,double> moment_functional( dg, {0.25, 0.0} );
     GeometricVolume<dim,nstate,double> volume_functional( dg );
 
+    // dealii::Point<dim,double> extraction_point;
+    // if constexpr(dim==2){
+    //         extraction_point[0] = 0.36;
+    //         extraction_point[1] = 0.00546019;
+    //     } else if constexpr(dim==3){
+    //         extraction_point[0] = 0.36;
+    //         extraction_point[1] = 0.00546019;
+    //         extraction_point[2] = 0;
+    //     }
+    //     int number_of_sampling = 200;
+
+    // // ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
+
+    // dealii::Point<3,double> observer_coord_ref;
+    // observer_coord_ref[0] = 0.0;
+    // observer_coord_ref[1] = 0.0;
+    // observer_coord_ref[2] = 2.0;
+
+    // AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg,boundary_layer_extraction,observer_coord_ref);
+
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
+            //   << ". Current OASPL = " << acoustic_functional.evaluate_functional()
               << ". Current Z-moment = " << moment_functional.evaluate_functional()
               << std::endl;
 
@@ -1110,6 +1136,9 @@ int ViscousNACAOptimization<dim,nstate>
         // Objective
         auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, design_parameterization, precomputed_dXvdXp );
         objective = drag_objective;
+
+        // auto acoustic_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( acoustic_functional, design_parameterization, precomputed_dXvdXp );
+        // objective = acoustic_objective;
 
         // Additional lift constraint
         auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp );
