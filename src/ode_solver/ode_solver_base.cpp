@@ -39,7 +39,7 @@ void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (con
     pcout << " Initializing DG with global polynomial degree = " << global_final_poly_degree << " by ramping from degree 0 ... " << std::endl;
     pcout << " ************************************************************************ " << std::endl;
 
-    for (unsigned int degree = global_final_poly_degree; degree <= global_final_poly_degree; degree++) {
+    for (unsigned int degree = 0; degree <= global_final_poly_degree; degree++) {
         pcout << " ************************************************************************ " << std::endl;
         pcout << " Ramping degree " << degree << " until p=" << global_final_poly_degree << std::endl;
         pcout << " ************************************************************************ " << std::endl;

@@ -53,7 +53,7 @@ template <class Real>
 class Reduced_Objective_SimOpt_FailSafe : public Reduced_Objective_SimOpt<Real> {
 
 private:
-  static constexpr double default_solver_tol = 1e-11;
+  static constexpr double default_solver_tol = 1e-05;
   const Real solver_tol_;
 public:
 

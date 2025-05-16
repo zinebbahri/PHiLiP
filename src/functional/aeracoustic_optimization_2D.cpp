@@ -27,6 +27,7 @@
 #include "euler_naca0012_optimization.hpp"
 
 #include "physics/euler.h"
+#include "physics/negative_spalart_allmaras_rans_model.h" // for FreeStreamInitialConditions_RANS_SA_negative
 #include "physics/initial_conditions/initial_condition_function.h"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_base.h"
@@ -39,6 +40,7 @@
 
 #include "optimization/rol_to_dealii_vector.hpp"
 #include "optimization/flow_constraints.hpp"
+// #include "optimization/rol_objective_acoustic.hpp"
 #include "optimization/rol_objective.hpp"
 #include "optimization/constraintfromobjective_simopt.hpp"
 
@@ -54,8 +56,14 @@
 #include "functional/geometric_volume.hpp"
 #include "functional/target_wall_pressure.hpp"
 #include "optimization/design_parameterization/ffd_parameterization.hpp"
+#include "functional/extraction_functional.hpp"
+#include "functional/amiet_model.hpp"
+#include "functional/acoustic_adjoint.hpp"
 
 #include "global_counter.hpp"
+
+#include "mesh/grids/naca_airfoil_grid.hpp"
+#include "mesh/high_order_grid.h"
 
 //#define CREATE_RST
 //#define REMOVE_BOUND
@@ -91,8 +99,8 @@ const std::vector<OptimizationAlgorithm> opt_list {
     OptimizationAlgorithm::reduced_space_bfgs,
     };
 
-const unsigned int POLY_START = 0;
-const unsigned int POLY_END = 0; // Can do until at least P2
+const unsigned int POLY_START = 1;
+const unsigned int POLY_END = 1; // Can do until at least P2
 
 //const unsigned int n_des_var_start = 10;//20;
 //const unsigned int n_des_var_end   = 40;//100;
@@ -166,7 +174,7 @@ namespace {
 }
 
 template<int dim, int nstate>
-int EulerNACADragOptimizationLiftConstrained<dim,nstate>
+int ViscousNACAOptimization<dim,nstate>
 ::check_flow_constraints(
     const unsigned int nx_ffd,
     ROL::Ptr<FlowConstraints<dim>> flow_constraints,
@@ -304,7 +312,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 }
 
 template<int dim, int nstate>
-int EulerNACADragOptimizationLiftConstrained<dim,nstate>
+int ViscousNACAOptimization<dim,nstate>
 ::check_objective(
     ROL::Ptr<ROL::Objective_SimOpt<double>> objective_simopt,
     ROL::Ptr<FlowConstraints<dim>> flow_constraints,
@@ -381,7 +389,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 }
 
 template<int dim, int nstate>
-int EulerNACADragOptimizationLiftConstrained<dim,nstate>
+int ViscousNACAOptimization<dim,nstate>
 ::check_reduced_constraint(
     const unsigned int nx_ffd,
     ROL::Ptr<ROL::Constraint<double>> reduced_constraint,
@@ -484,7 +492,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 
 template <int dim, int nstate>
 ROL::Ptr<ROL::Vector<double>> 
-EulerNACADragOptimizationLiftConstrained<dim,nstate>::
+ViscousNACAOptimization<dim,nstate>::
 getDesignVariables(
     ROL::Ptr<ROL::Vector<double>> simulation_variables,
     ROL::Ptr<ROL::Vector<double>> control_variables,
@@ -500,7 +508,7 @@ getDesignVariables(
 
 template <int dim, int nstate>
 ROL::Ptr<ROL::Objective<double>> 
-EulerNACADragOptimizationLiftConstrained<dim,nstate>::
+ViscousNACAOptimization<dim,nstate>::
 getObjective(
     const ROL::Ptr<ROL::Objective_SimOpt<double>> objective,
     const ROL::Ptr<ROL::Constraint_SimOpt<double>> flow_constraints,
@@ -523,7 +531,7 @@ getObjective(
 
 template <int dim, int nstate>
 ROL::Ptr<ROL::BoundConstraint<double>>
-EulerNACADragOptimizationLiftConstrained<dim,nstate>::
+ViscousNACAOptimization<dim,nstate>::
 getDesignBoundConstraint(
     ROL::Ptr<ROL::Vector<double>> simulation_variables,
     ROL::Ptr<ROL::Vector<double>> control_variables,
@@ -597,21 +605,21 @@ getDesignBoundConstraint(
 
 template <int dim, int nstate>
 ROL::Ptr<ROL::Constraint<double>>
-EulerNACADragOptimizationLiftConstrained<dim,nstate>::getEqualityConstraint(void) const
+ViscousNACAOptimization<dim,nstate>::getEqualityConstraint(void) const
 {
     return ROL::nullPtr;
 }
 
 template <int dim, int nstate>
 ROL::Ptr<ROL::Vector<double>> 
-EulerNACADragOptimizationLiftConstrained<dim,nstate>::getEqualityMultiplier(void) const
+ViscousNACAOptimization<dim,nstate>::getEqualityMultiplier(void) const
 {
     return ROL::nullPtr;
 }
 
 template <int dim, int nstate>
 std::vector<ROL::Ptr<ROL::Constraint<double>>>
-EulerNACADragOptimizationLiftConstrained<dim,nstate>::
+ViscousNACAOptimization<dim,nstate>::
 getInequalityConstraint(
     const std::vector<ROL::Ptr<ROL::Objective_SimOpt<double>>> constraints_as_objective,
     const ROL::Ptr<ROL::Constraint_SimOpt<double>> flow_constraints,
@@ -649,7 +657,7 @@ getInequalityConstraint(
 
 template <int dim, int nstate>
 std::vector<ROL::Ptr<ROL::Vector<double>>> 
-EulerNACADragOptimizationLiftConstrained<dim,nstate>::
+ViscousNACAOptimization<dim,nstate>::
 getInequalityMultiplier(std::vector<double>& nonlinear_inequality_targets) const
 {
     std::vector<ROL::Ptr<ROL::Vector<double>>> emul;
@@ -663,7 +671,7 @@ getInequalityMultiplier(std::vector<double>& nonlinear_inequality_targets) const
 
 template <int dim, int nstate>
 std::vector<ROL::Ptr<ROL::BoundConstraint<double>>>
-EulerNACADragOptimizationLiftConstrained<dim,nstate>::
+ViscousNACAOptimization<dim,nstate>::
 getSlackBoundConstraint(
     const std::vector<double>& nonlinear_targets,
     const std::vector<double>& lower_bound_dx,
@@ -687,14 +695,14 @@ getSlackBoundConstraint(
 
 
 template <int dim, int nstate>
-EulerNACADragOptimizationLiftConstrained<dim,nstate>::
-EulerNACADragOptimizationLiftConstrained(const Parameters::AllParameters *const parameters_input)
+ViscousNACAOptimization<dim,nstate>::
+ViscousNACAOptimization(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
 template<int dim, int nstate>
-int EulerNACADragOptimizationLiftConstrained<dim,nstate>
+int ViscousNACAOptimization<dim,nstate>
 ::run_test () const
 {
     int test_error = 0;
@@ -712,7 +720,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 }
 
 template<int dim, int nstate>
-int EulerNACADragOptimizationLiftConstrained<dim,nstate>
+int ViscousNACAOptimization<dim,nstate>
 ::optimize (const unsigned int nx_ffd, const unsigned int level) const
 {
     int test_error = 0;
@@ -795,7 +803,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
-    Assert(param.pde_type == param.PartialDifferentialEquation::euler, dealii::ExcNotImplemented());
+    Assert(param.pde_type == param.PartialDifferentialEquation::navier_stokes, dealii::ExcNotImplemented());
 
     ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
 
@@ -806,15 +814,22 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     d2R_mult = 0;
     
 
-    Physics::Euler<dim,nstate,double> euler_physics_double
-        = Physics::Euler<dim, nstate, double>(
-                &param,
-                param.euler_param.ref_length,
-                param.euler_param.gamma_gas,
-                param.euler_param.mach_inf,
-                param.euler_param.angle_of_attack,
-                param.euler_param.side_slip_angle);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+    Physics::NavierStokes<dim, nstate, double> rans_NS_physics_double
+            = Physics::NavierStokes<dim, nstate, double>(
+                    &param,
+                    param.euler_param.ref_length,
+                    param.euler_param.gamma_gas,
+                    param.euler_param.mach_inf,
+                    param.euler_param.angle_of_attack,
+                    param.euler_param.side_slip_angle,
+                    param.navier_stokes_param.prandtl_number,
+                    param.navier_stokes_param.reynolds_number_inf,
+                    param.navier_stokes_param.use_constant_viscosity,
+                    param.navier_stokes_param.nondimensionalized_constant_viscosity,
+                    273.15,
+                    1.0
+                    );
+        FreeStreamInitialConditions_RANS_SA_negative<dim,nstate,double> initial_conditions(rans_NS_physics_double);
 
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (
@@ -834,8 +849,10 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
         ffd_origin = dealii::Point<dim> (-0.60,-0.51);
         ffd_rectangle_lengths = std::array<double,dim> {{1.0+0.2,1.0+0.02}};
     } else if (grid_type == GridType::naca0012) {
-        ffd_origin = dealii::Point<dim> (0.0,-0.061);
-        ffd_rectangle_lengths = std::array<double,dim> {{0.999,0.122}};
+        // ffd_origin = dealii::Point<dim> (0.0,-0.061);
+        // ffd_rectangle_lengths = std::array<double,dim> {{0.999,0.122}};
+           ffd_origin = dealii::Point<dim> (-0.1,-0.1);
+           ffd_rectangle_lengths = std::array<double,dim> {{0.6,0.2}};
             //ffd_rectangle_lengths = std::array<double,dim> {{1.0,0.122}};
         }
 
@@ -953,12 +970,54 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
         if (dim==2) {
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",1);
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref"+std::to_string(level)+".msh",1);
-            //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref3.msh",1);
+            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref3.msh",1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", 1);
-            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", true, 1, false);
+            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", true, 1, false);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh", 1);
+            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref4.msh", 1);
             //naca0012_mesh->refine_global();
-            dg->set_high_order_grid(naca0012_mesh);
+
+            // using dealii Grid Generator
+            std::shared_ptr<Triangulation> naca0012_mesh = std::make_shared<Triangulation> (
+        #if dim!=1
+            this->mpi_communicator
+        #endif
+            );
+
+            dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
+            airfoil_data.airfoil_type = "NACA";
+            airfoil_data.naca_id      = "0012";
+            airfoil_data.airfoil_length = 1;
+            airfoil_data.height         = 4.0;
+            airfoil_data.length_b2      = 4.0;
+            airfoil_data.incline_factor = 0.08;
+            airfoil_data.bias_factor    = 4.0; 
+            airfoil_data.refinements    = 0;
+
+            airfoil_data.n_subdivision_x_0 = 60;//150;
+            airfoil_data.n_subdivision_x_1 = 70;//175;
+            airfoil_data.n_subdivision_x_2 = 50;//125;
+            airfoil_data.n_subdivision_y = 50;//125;
+            airfoil_data.airfoil_sampling_factor = 100; 
+
+            dealii::GridGenerator::Airfoil::create_triangulation(*naca0012_mesh, airfoil_data);
+
+                // Set boundary type and design type
+            for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = naca0012_mesh->begin_active(); cell != naca0012_mesh->end(); ++cell) {
+                for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+                    if (cell->face(face)->at_boundary()) {
+                        unsigned int current_id = cell->face(face)->boundary_id();
+                        if (current_id == 0 || current_id == 1 || current_id == 4 || current_id == 5) {
+                            cell->face(face)->set_boundary_id (1005); // farfield
+                        } else {
+                            cell->face(face)->set_boundary_id (1001); // wall
+                        }
+                    }
+                }
+            }
+            std::cout<<"here"<<std::endl;
+            dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
+            std::cout<<"here2"<<std::endl;
         }
         //if (dim==3) {
         //    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_wing_unstructured_cutoff.msh", true, 1, false);
@@ -1018,8 +1077,29 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     ZMomentFunctional<dim,nstate,double> moment_functional( dg, {0.25, 0.0} );
     GeometricVolume<dim,nstate,double> volume_functional( dg );
 
+    // dealii::Point<dim,double> extraction_point;
+    // if constexpr(dim==2){
+    //         extraction_point[0] = 0.36;
+    //         extraction_point[1] = 0.00546019;
+    //     } else if constexpr(dim==3){
+    //         extraction_point[0] = 0.36;
+    //         extraction_point[1] = 0.00546019;
+    //         extraction_point[2] = 0;
+    //     }
+    //     int number_of_sampling = 200;
+
+    // // ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
+
+    // dealii::Point<3,double> observer_coord_ref;
+    // observer_coord_ref[0] = 0.0;
+    // observer_coord_ref[1] = 0.0;
+    // observer_coord_ref[2] = 2.0;
+
+    // AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg,boundary_layer_extraction,observer_coord_ref);
+
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
+            //   << ". Current OASPL = " << acoustic_functional.evaluate_functional()
               << ". Current Z-moment = " << moment_functional.evaluate_functional()
               << std::endl;
 
@@ -1102,6 +1182,9 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
         // Objective
         auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, design_parameterization, precomputed_dXvdXp );
         objective = drag_objective;
+
+        // auto acoustic_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( acoustic_functional, design_parameterization, precomputed_dXvdXp );
+        // objective = acoustic_objective;
 
         // Additional lift constraint
         auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp );
@@ -1404,7 +1487,7 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 
 
 #if PHILIP_DIM==2
-    template class EulerNACADragOptimizationLiftConstrained <PHILIP_DIM,PHILIP_DIM+2>;
+    template class ViscousNACAOptimization <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

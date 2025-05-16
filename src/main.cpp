@@ -92,6 +92,11 @@ int main (int argc, char *argv[])
             std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters[0],parameter_handler[0]);
             run_error = test->run_test();
             pcout << "Finished integration test with run error code: " << run_error << std::endl;
+        // setting up integration_test to take 2 prm files
+        // else if(all_parameters[0].run_type == PHiLiP::Parameters::AllParameters::RunType::integration_test) {
+        //     std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(all_parameters_pointer,parameter_handler);
+        //     run_error = test->run_test();
+        //     pcout << "Finished integration test with run error code: " << run_error << std::endl;
         }
     }
     catch (std::exception &exc)

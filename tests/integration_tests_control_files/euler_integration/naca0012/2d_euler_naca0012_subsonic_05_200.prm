@@ -8,7 +8,7 @@ set dimension = 2
 
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
-set pde_type  = euler
+set pde_type  = navier_stokes
 
 #set conv_num_flux = lax_friedrichs #roe
 set conv_num_flux = roe
@@ -25,7 +25,11 @@ set output_face_results_vtk = true
 subsection euler
   set reference_length = 1.0
   set mach_infinity = 0.50
-  set angle_of_attack = 2.0
+  set angle_of_attack = 0.0
+end
+
+subsection navier_stokes
+  set reynolds_number_inf = 5000
 end
 
 subsection linear solver
@@ -66,7 +70,7 @@ subsection ODE solver
   set nonlinear_max_iterations            = 2000
 
   # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 1e-14
+  set nonlinear_steady_residual_tolerance = 1e-09
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type  = implicit
@@ -86,10 +90,10 @@ end
 
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end        = 3
+  set degree_end        = 2
 
   # Starting degree for convergence study
-  set degree_start      = 3
+  set degree_start      = 2
 
   set grid_progression  = 1
 
