@@ -91,8 +91,8 @@ const std::vector<OptimizationAlgorithm> opt_list {
     OptimizationAlgorithm::reduced_space_bfgs,
     };
 
-const unsigned int POLY_START = 0;
-const unsigned int POLY_END = 0; // Can do until at least P2
+const unsigned int POLY_START = 1;
+const unsigned int POLY_END = 1; // Can do until at least P2
 
 //const unsigned int n_des_var_start = 10;//20;
 //const unsigned int n_des_var_end   = 40;//100;
@@ -1014,7 +1014,8 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
     Teuchos::ParameterList parlist;
 
     LiftDragFunctional<dim,nstate,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
-    LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
+    LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
+    // LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
     ZMomentFunctional<dim,nstate,double> moment_functional( dg, {0.25, 0.0} );
     GeometricVolume<dim,nstate,double> volume_functional( dg );
 

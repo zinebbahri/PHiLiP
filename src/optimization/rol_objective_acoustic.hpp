@@ -14,6 +14,7 @@
 namespace PHiLiP {
 
 using ROL_Vector = ROL::Vector<double>;
+using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 
 /// Interface between the ROL::Objective_SimOpt PHiLiP::Functional.
 /** Uses FFD to parametrize the geometry.

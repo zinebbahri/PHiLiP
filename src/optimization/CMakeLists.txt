@@ -3,7 +3,7 @@ set(TESTS_SOURCE
     dealii_solver_rol_vector.cpp
     flow_constraints.cpp
     rol_objective.cpp
-    #rol_objective_acoustic.cpp
+    rol_objective_acoustic.cpp
     full_space_step.cpp
     sequential_quadratic_programming.cpp
     primal_dual_active_set.cpp

@@ -375,7 +375,7 @@ namespace MeshMover {
         assemble_system();
 
         const bool log_history = (this_mpi_process == 0);
-        dealii::SolverControl solver_control(20000, 1e-14 * input_vector_norm, log_history);
+        dealii::SolverControl solver_control(30000, 1e-12 * input_vector_norm, log_history);
         //dealii::SolverControl solver_control(20000, 1e-14, log_history);
         solver_control.log_frequency(100);
         const int max_n_tmp_vectors=200;
@@ -518,7 +518,7 @@ namespace MeshMover {
                 output_vector = 0.0;
             } else {
                 const bool log_history = (this_mpi_process == 0);
-                dealii::SolverControl solver_control(20000, 1e-14 * input_vector_norm, log_history);
+                dealii::SolverControl solver_control(30000, 1e-12 * input_vector_norm, log_history);
                 //dealii::SolverControl solver_control(20000, 1e-14, log_history);
                 solver_control.log_frequency(100);
                 const int max_n_tmp_vectors=200;
@@ -572,7 +572,7 @@ namespace MeshMover {
         assemble_system();
 
         const bool log_history = (this_mpi_process == 0);
-        dealii::SolverControl solver_control(20000, 1e-14 * input_vector_norm, log_history);
+        dealii::SolverControl solver_control(30000, 1e-12 * input_vector_norm, log_history);
         //dealii::SolverControl solver_control(20000, 1e-14, log_history);
         solver_control.log_frequency(100);
         const int max_n_tmp_vectors=200;

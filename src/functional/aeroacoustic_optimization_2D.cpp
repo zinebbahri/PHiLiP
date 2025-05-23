@@ -144,6 +144,56 @@ const std::string line_search_method = "Backtracking";
 namespace PHiLiP {
 namespace Tests {
 
+
+template <int dim, int nstate>
+AeroAcousticOptimization2D<dim,nstate>::
+AeroAcousticOptimization2D(const std::vector<Parameters::AllParameters*> &parameters_input,
+                           const std::vector<dealii::ParameterHandler> &parameter_handler_input)
+    :TestsBase::TestsBase(parameters_input)
+    , parameter_handler(parameter_handler_input[0])
+    , mpi_communicator(MPI_COMM_WORLD)
+    , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+    , n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
+    , pcout(std::cout, mpi_rank==0)
+    , all_param(*parameters_input[0])
+    , sub_all_param(*parameters_input[1])
+    // , flow_solver_param(all_param.flow_solver_param)
+    // , sub_flow_solver_param(sub_all_param.flow_solver_param)
+    , ode_param(all_param.ode_solver_param)
+    , sub_ode_param(sub_all_param.ode_solver_param)
+    , poly_degree(flow_solver_param.poly_degree)
+    , sub_poly_degree(sub_flow_solver_param.poly_degree)
+    , grid_degree(flow_solver_param.grid_degree)
+    , sub_grid_degree(sub_flow_solver_param.grid_degree)
+    // , final_time(flow_solver_param.final_time)
+    , input_parameters_file_reference_copy_filename(flow_solver_param.restart_files_directory_name + std::string("/") + std::string("input_copy.prm"))
+    , do_output_solution_at_fixed_times(ode_param.output_solution_at_fixed_times)
+    , number_of_fixed_times_to_output_solution(ode_param.number_of_fixed_times_to_output_solution)
+    , output_solution_at_exact_fixed_times(ode_param.output_solution_at_exact_fixed_times)
+    // , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param,
+    //                                                           &sub_all_param, 
+    //                                                           poly_degree,
+    //                                                           flow_solver_param.max_poly_degree_for_adaptation, 
+    //                                                           grid_degree, 
+    //                                                           flow_solver_case->generate_grid()))
+    // , sub_dg(DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, 
+    //                                                               sub_poly_degree, 
+    //                                                               sub_flow_solver_param.max_poly_degree_for_adaptation, 
+    //                                                               sub_grid_degree, 
+    //                                                               sub_flow_solver_case->generate_grid()))
+    {
+        pcout << "A sub flow solver detected." << std::endl;
+        // pcout << "Set up for main and sub flow solver:" << std::endl;
+        // pcout << "Set up main flow solver." << std::endl;
+        // main_flow_solver_setup();
+        // pcout << "Done." << std::endl;
+        // pcout << "Set up sub flow solver." << std::endl;
+        // sub_flow_solver_setup();
+        // pcout << "Done." << std::endl;
+    }
+{}
+
+
 namespace {
     double check_maximum_relative_error(std::vector<std::vector<double>> rol_check_results) {
         double max_rel_err = 999999;
@@ -174,7 +224,7 @@ namespace {
 }
 
 template<int dim, int nstate>
-int ViscousNACAOptimization<dim,nstate>
+int AeroAcousticOptimization2D<dim,nstate>
 ::check_flow_constraints(
     const unsigned int nx_ffd,
     ROL::Ptr<FlowConstraints<dim>> flow_constraints,
@@ -312,7 +362,7 @@ int ViscousNACAOptimization<dim,nstate>
 }
 
 template<int dim, int nstate>
-int ViscousNACAOptimization<dim,nstate>
+int AeroAcousticOptimization2D<dim,nstate>
 ::check_objective(
     ROL::Ptr<ROL::Objective_SimOpt<double>> objective_simopt,
     ROL::Ptr<FlowConstraints<dim>> flow_constraints,
@@ -389,7 +439,7 @@ int ViscousNACAOptimization<dim,nstate>
 }
 
 template<int dim, int nstate>
-int ViscousNACAOptimization<dim,nstate>
+int AeroAcousticOptimization2D<dim,nstate>
 ::check_reduced_constraint(
     const unsigned int nx_ffd,
     ROL::Ptr<ROL::Constraint<double>> reduced_constraint,
@@ -492,7 +542,7 @@ int ViscousNACAOptimization<dim,nstate>
 
 template <int dim, int nstate>
 ROL::Ptr<ROL::Vector<double>> 
-ViscousNACAOptimization<dim,nstate>::
+AeroAcousticOptimization2D<dim,nstate>::
 getDesignVariables(
     ROL::Ptr<ROL::Vector<double>> simulation_variables,
     ROL::Ptr<ROL::Vector<double>> control_variables,
@@ -508,7 +558,7 @@ getDesignVariables(
 
 template <int dim, int nstate>
 ROL::Ptr<ROL::Objective<double>> 
-ViscousNACAOptimization<dim,nstate>::
+AeroAcousticOptimization2D<dim,nstate>::
 getObjective(
     const ROL::Ptr<ROL::Objective_SimOpt<double>> objective,
     const ROL::Ptr<ROL::Constraint_SimOpt<double>> flow_constraints,
@@ -531,7 +581,7 @@ getObjective(
 
 template <int dim, int nstate>
 ROL::Ptr<ROL::BoundConstraint<double>>
-ViscousNACAOptimization<dim,nstate>::
+AeroAcousticOptimization2D<dim,nstate>::
 getDesignBoundConstraint(
     ROL::Ptr<ROL::Vector<double>> simulation_variables,
     ROL::Ptr<ROL::Vector<double>> control_variables,
@@ -605,21 +655,21 @@ getDesignBoundConstraint(
 
 template <int dim, int nstate>
 ROL::Ptr<ROL::Constraint<double>>
-ViscousNACAOptimization<dim,nstate>::getEqualityConstraint(void) const
+AeroAcousticOptimization2D<dim,nstate>::getEqualityConstraint(void) const
 {
     return ROL::nullPtr;
 }
 
 template <int dim, int nstate>
 ROL::Ptr<ROL::Vector<double>> 
-ViscousNACAOptimization<dim,nstate>::getEqualityMultiplier(void) const
+AeroAcousticOptimization2D<dim,nstate>::getEqualityMultiplier(void) const
 {
     return ROL::nullPtr;
 }
 
 template <int dim, int nstate>
 std::vector<ROL::Ptr<ROL::Constraint<double>>>
-ViscousNACAOptimization<dim,nstate>::
+AeroAcousticOptimization2D<dim,nstate>::
 getInequalityConstraint(
     const std::vector<ROL::Ptr<ROL::Objective_SimOpt<double>>> constraints_as_objective,
     const ROL::Ptr<ROL::Constraint_SimOpt<double>> flow_constraints,
@@ -657,7 +707,7 @@ getInequalityConstraint(
 
 template <int dim, int nstate>
 std::vector<ROL::Ptr<ROL::Vector<double>>> 
-ViscousNACAOptimization<dim,nstate>::
+AeroAcousticOptimization2D<dim,nstate>::
 getInequalityMultiplier(std::vector<double>& nonlinear_inequality_targets) const
 {
     std::vector<ROL::Ptr<ROL::Vector<double>>> emul;
@@ -671,7 +721,7 @@ getInequalityMultiplier(std::vector<double>& nonlinear_inequality_targets) const
 
 template <int dim, int nstate>
 std::vector<ROL::Ptr<ROL::BoundConstraint<double>>>
-ViscousNACAOptimization<dim,nstate>::
+AeroAcousticOptimization2D<dim,nstate>::
 getSlackBoundConstraint(
     const std::vector<double>& nonlinear_targets,
     const std::vector<double>& lower_bound_dx,
@@ -693,16 +743,8 @@ getSlackBoundConstraint(
 }
 
 
-
-template <int dim, int nstate>
-ViscousNACAOptimization<dim,nstate>::
-ViscousNACAOptimization(const Parameters::AllParameters *const parameters_input)
-    :
-    TestsBase::TestsBase(parameters_input)
-{}
-
 template<int dim, int nstate>
-int ViscousNACAOptimization<dim,nstate>
+int AeroAcousticOptimization2D<dim,nstate>
 ::run_test () const
 {
     int test_error = 0;
@@ -720,7 +762,7 @@ int ViscousNACAOptimization<dim,nstate>
 }
 
 template<int dim, int nstate>
-int ViscousNACAOptimization<dim,nstate>
+int AeroAcousticOptimization2D<dim,nstate>
 ::optimize (const unsigned int nx_ffd, const unsigned int level) const
 {
     int test_error = 0;
@@ -814,22 +856,32 @@ int ViscousNACAOptimization<dim,nstate>
     d2R_mult = 0;
     
 
-    Physics::NavierStokes<dim, nstate, double> rans_NS_physics_double
-            = Physics::NavierStokes<dim, nstate, double>(
-                    &param,
-                    param.euler_param.ref_length,
-                    param.euler_param.gamma_gas,
-                    param.euler_param.mach_inf,
-                    param.euler_param.angle_of_attack,
-                    param.euler_param.side_slip_angle,
-                    param.navier_stokes_param.prandtl_number,
-                    param.navier_stokes_param.reynolds_number_inf,
-                    param.navier_stokes_param.use_constant_viscosity,
-                    param.navier_stokes_param.nondimensionalized_constant_viscosity,
-                    273.15,
-                    1.0
-                    );
-        FreeStreamInitialConditions_RANS_SA_negative<dim,nstate,double> initial_conditions(rans_NS_physics_double);
+    // Physics::NavierStokes<dim, nstate, double> rans_NS_physics_double
+    //         = Physics::NavierStokes<dim, nstate, double>(
+    //                 &param,
+    //                 param.euler_param.ref_length,
+    //                 param.euler_param.gamma_gas,
+    //                 param.euler_param.mach_inf,
+    //                 param.euler_param.angle_of_attack,
+    //                 param.euler_param.side_slip_angle,
+    //                 param.navier_stokes_param.prandtl_number,
+    //                 param.navier_stokes_param.reynolds_number_inf,
+    //                 param.navier_stokes_param.use_constant_viscosity,
+    //                 param.navier_stokes_param.nondimensionalized_constant_viscosity,
+    //                 273.15,
+    //                 1.0
+    //                 );
+    //     FreeStreamInitialConditions_RANS_SA_negative<dim,nstate,double> initial_conditions(rans_NS_physics_double);
+
+        Physics::Euler<dim,nstate,double> euler_physics_double
+        = Physics::Euler<dim, nstate, double>(
+                &all_param,
+                all_param.euler_param.ref_length,
+                all_param.euler_param.gamma_gas,
+                all_param.euler_param.mach_inf,
+                all_param.euler_param.angle_of_attack,
+                all_param.euler_param.side_slip_angle);
+        FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
 
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (
@@ -849,6 +901,7 @@ int ViscousNACAOptimization<dim,nstate>
         ffd_origin = dealii::Point<dim> (-0.60,-0.51);
         ffd_rectangle_lengths = std::array<double,dim> {{1.0+0.2,1.0+0.02}};
     } else if (grid_type == GridType::naca0012) {
+        //// Coordinates for NACA deall II grid
         // ffd_origin = dealii::Point<dim> (0.0,-0.061);
         // ffd_rectangle_lengths = std::array<double,dim> {{0.999,0.122}};
            ffd_origin = dealii::Point<dim> (-0.1,-0.1);
@@ -938,7 +991,8 @@ int ViscousNACAOptimization<dim,nstate>
     }
 
     const int poly_degree = level;
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, grid);
+    std::shared_ptr < DGBase<dim, double> > sub_dg = DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, poly_degree, grid);
 
     if (grid_type == GridType::naca0012) {
         //const double farfield_length = 20.0;
@@ -1015,17 +1069,121 @@ int ViscousNACAOptimization<dim,nstate>
                     }
                 }
             }
-            std::cout<<"here"<<std::endl;
-            dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
-            std::cout<<"here2"<<std::endl;
+            // dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
+            // sub_dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
         }
         //if (dim==3) {
         //    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_wing_unstructured_cutoff.msh", true, 1, false);
         //    dg->set_high_order_grid(naca0012_mesh);
         //}
     }
+// main flow solver set up
+{
+    dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
+    if (ode_param.allocate_matrix_dRdW) {
+        pcout << "Note: Allocating DG with AD matrix dRdW and dRdX only." << std::endl;
+        dg->allocate_system(true,true,false); // FlowSolver only requires dRdW to be allocated
+    } else {
+        pcout << "Note: Allocating DG without AD matrices." << std::endl;
+        dg->allocate_system(false,false,false);
+    }
 
-    dg->allocate_system ();
+    if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
+        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
+    }
+    else{
+        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    }
+
+    // flow_solver_case->display_flow_solver_setup(dg);
+
+    if(flow_solver_param.restart_computation_from_file == true) {
+        if(dim == 1) {
+            pcout << "Error: restart_computation_from_file is not possible for 1D. Set to false." << std::endl;
+            std::abort();
+        }
+
+        if (flow_solver_param.steady_state == true) {
+            pcout << "Error: Restart capability has not been fully implemented / tested for steady state computations." << std::endl;
+            std::abort();
+        }
+
+        // Initialize solution from restart file
+        pcout << "Initializing solution from restart file..." << std::flush;
+        const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
+    #if PHILIP_DIM>1
+        dg->triangulation->load(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
+        
+        // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
+        // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
+        dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+        solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
+        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+        solution_transfer.deserialize(solution_no_ghost);
+        dg->solution = solution_no_ghost; //< assignment
+        dg->sub_solution = solution_no_ghost; //< assignment
+#endif
+        pcout << "done." << std::endl;
+    } else {
+        // Initialize solution
+        SetInitialCondition<dim,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
+    }
+    dg->solution.update_ghost_values();
+    dg->sub_solution.update_ghost_values();
+    
+    // Allocate ODE solver after initializing DG
+    ode_solver->allocate_ode_system();
+
+    // output a copy of the input parameters file
+    if(flow_solver_param.output_restart_files == true) {
+        pcout << "Writing a reference copy of the inputted parameters (.prm) file... " << std::flush;
+        if(mpi_rank==0) {
+            parameter_handler.print_parameters(input_parameters_file_reference_copy_filename);    
+        }
+        pcout << "done." << std::endl;
+    }
+
+    // For outputting solution at fixed times
+    if(this->do_output_solution_at_fixed_times && (this->number_of_fixed_times_to_output_solution > 0)) {
+        this->output_solution_fixed_times.reinit(this->number_of_fixed_times_to_output_solution);
+        
+        // Get output_solution_fixed_times from string
+        const std::string output_solution_fixed_times_string = this->ode_param.output_solution_fixed_times_string;
+        std::string line = output_solution_fixed_times_string;
+        std::string::size_type sz1;
+        this->output_solution_fixed_times[0] = std::stod(line,&sz1);
+        for(unsigned int i=1; i<this->number_of_fixed_times_to_output_solution; ++i) {
+            line = line.substr(sz1);
+            sz1 = 0;
+            this->output_solution_fixed_times[i] = std::stod(line,&sz1);
+        }
+    }
+}
+ // sub flow solver set up
+{
+    sub_dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
+    sub_dg->allocate_system();
+
+    if(sub_ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || sub_ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(sub_dg);
+        sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg, pod);
+    }
+    else{
+        sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg);
+    }
+
+    pcout << "Initializing sub solution with initial condition function... " << std::flush;
+    SetInitialCondition<dim,sub_nstate,double>::set_initial_condition(sub_flow_solver_case->initial_condition_function, sub_dg, &sub_all_param);
+
+    sub_dg->solution.update_ghost_values();
+    pcout << "done." << std::endl;
+    sub_ode_solver->allocate_ode_system();
+
+}
+
+    // dg->allocate_system ();
+    // sub_dg->allocate_system ();
 
 #ifndef CREATE_RST
     DealiiVector target_solution;
@@ -1045,13 +1203,57 @@ int ViscousNACAOptimization<dim,nstate>
     TargetWallPressure<dim,nstate,double> target_wall_pressure_functional(dg, target_solution);
 #endif
 
-    dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
-    // Create ODE solver and ramp up the solution from p0
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-    //param.ode_solver_param.nonlinear_steady_residual_tolerance = 1e-4;
-    ode_solver->initialize_steady_polynomial_ramping (poly_degree);
-    // // Solve the steady state problem
-    ode_solver->steady_state();
+// Solve sub and main flow solvers, steady state
+{
+        //----------------------------------------------------
+        // Steady-state solution
+        //----------------------------------------------------
+        using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+        if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver)) {
+            ode_solver->initialize_steady_polynomial_ramping(poly_degree);
+        }
+
+        if(sub_dg){
+            pcout << "Start calculation for the sub ODE solver..." << std::endl;
+            sub_ode_solver->steady_state();
+            // sub_flow_solver_case->steady_state_postprocessing(sub_dg);
+            pcout << "End calculation for the sub ODE solver..." << std::endl;
+
+            if(sub_dg->max_degree!=dg->max_degree){
+                pcout << "Detect different polynomial degree between sub dg (poly_degree = " << sub_dg->max_degree << ") and main dg (poly_degree = " << dg->max_degree << ")..." << std::endl;
+                pcout << "Interpolate solution from current polynomial degree " << sub_dg->max_degree << " to desired polynomial degree " << dg->max_degree << " ..." << std::endl;
+                sub_dg->output_results_vtk(8888);
+                sub_ode_solver->interpolate_solution_polynomial_degree(dg->max_degree);
+                sub_dg->output_results_vtk(9999);
+            }
+
+            pcout << "Transfer the solution from sub dg to main dg..." << std::endl;
+            dg->import_sub_solution(sub_dg);
+        }else{
+            pcout << "No calculation for the sub ODE solver..." << std::endl;
+        }
+
+        pcout << "Start calculation for the main ODE solver..." << std::endl;
+        
+        ode_solver->steady_state();
+        // flow_solver_case->steady_state_postprocessing(dg);
+        
+        const bool use_isotropic_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0) 
+                                        && (all_param.mesh_adaptation_param.mesh_adaptation_type != Parameters::MeshAdaptationParam::MeshAdaptationType::anisotropic_adaptation);
+        
+        if(use_isotropic_mesh_adaptation)
+        {
+            perform_steady_state_mesh_adaptation();
+        }
+
+}
+
+    // dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
+    // // Create ODE solver and ramp up the solution from p0
+    // std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    // //param.ode_solver_param.nonlinear_steady_residual_tolerance = 1e-4;
+    // ode_solver->initialize_steady_polynomial_ramping (poly_degree);
+    // ode_solver->steady_state();
 
     // Reset to initial_grid
     DealiiVector des_var_sim = dg->solution;
@@ -1487,7 +1689,7 @@ int ViscousNACAOptimization<dim,nstate>
 
 
 #if PHILIP_DIM==2
-    template class ViscousNACAOptimization <PHILIP_DIM,PHILIP_DIM+2>;
+    template class AeroAcousticOptimization2D <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

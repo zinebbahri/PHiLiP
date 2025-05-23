@@ -24,7 +24,9 @@ public:
         error_normLp_volume,
         error_normLp_boundary,
         lift,
-        drag,
+        total_drag,
+        pressure_drag,
+        // drag,
         solution_integral,
         outlet_pressure_integral
     };

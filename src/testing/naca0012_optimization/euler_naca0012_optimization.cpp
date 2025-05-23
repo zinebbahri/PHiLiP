@@ -579,7 +579,8 @@ int EulerNACAOptimization<dim,nstate>
     TargetWallPressure<dim,nstate,double> target_wall_pressure_functional(dg, target_solution);
 
     LiftDragFunctional<dim,nstate,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
-    LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
+    LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
+    // LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
     // Functional<dim,nstate,double, Triangulation> lift_functional_test( dg, LiftDragFunctional<dim,dim+2,double, Triangulation>::Functional_types::lift );
 
     std::cout << " Current lift = " << lift_functional.evaluate_functional()

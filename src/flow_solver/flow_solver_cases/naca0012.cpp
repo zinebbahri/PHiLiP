@@ -97,7 +97,7 @@ double NACA0012<dim,nstate>::compute_lift(std::shared_ptr<DGBase<dim, double>> d
 template <int dim, int nstate>
 double NACA0012<dim,nstate>::compute_drag(std::shared_ptr<DGBase<dim, double>> dg) const
 {
-    LiftDragFunctional<dim,dim+2,double> drag_functional(dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag);
+    LiftDragFunctional<dim,dim+2,double> drag_functional(dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag);
     const double drag = drag_functional.evaluate_functional();
     return drag;
 }

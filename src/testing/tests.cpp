@@ -331,6 +331,41 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
 
 template<int dim, int nstate, typename MeshType>
 std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
+::select_test(const std::vector<Parameters::AllParameters*> &parameters_input,
+                   const std::vector<dealii::ParameterHandler> &parameter_handler_input)
+{
+// Get the flow case type
+    using Test_enum = AllParam::TestType;
+    const Test_enum test_type = parameters_input[0]->test_type;
+    if (test_type == Test_enum::aeroacoustic_optimization_2D){
+        if constexpr (dim==2 && nstate==dim+3){
+            if (parameters_input.size()==2){
+                if (sub_nstate==1){
+                    // std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_unique<ViscousNACAOptimization<dim,nstate>>(parameters_input[0]);
+                    // std::shared_ptr<FlowSolverCaseBase<dim, sub_nstate>> sub_flow_solver_case = std::make_unique<ViscousNACAOptimization<dim,nstate>>(parameters_input[1]);
+                    return std::make_unique<AeroAcousticOptimization2D<dim,nstate>>(parameters_input, parameter_handler_input);
+                }else{
+                    std::cout << "Invalid nstate for wall distance sub model." << std::endl;
+                    std::cout << "Only p-Poisson wall distance model is supported for RANS." << std::endl;
+                    std::cout << "Aborting..." << std::endl;
+                    std::abort();
+                }
+            } else {
+                std::cout << "Wall distance sub model is required for RANS calculation." << std::endl;
+                std::cout << "Aborting..." << std::endl;
+                std::abort();
+            }
+        }
+    } else {
+        std::cout << "Invalid flow case in a vector of parameters inputs. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
+        std::abort();
+    }
+    return nullptr;
+
+}
+
+template<int dim, int nstate, typename MeshType>
+std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
 ::create_test(AllParam const *const parameters_input,
               dealii::ParameterHandler &parameter_handler_input)
 {
@@ -338,12 +373,15 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     // As a results, this recursive template initializes all possible dimensions with all possible nstate
     // without having 15 different if-else statements
     if(dim == parameters_input->dimension)
+    // if(dim == parameters_input[0]->dimension)
     {
         // This template parameters dim and nstate match the runtime parameters
         // then create the selected test with template parameters dim and nstate
         // Otherwise, keep decreasing nstate and dim until it matches
         if(nstate == parameters_input->nstate) 
+        // if(nstate == parameters_input[0]->nstate) 
             return TestsFactory<dim,nstate>::select_mesh(parameters_input,parameter_handler_input);
+            // return TestsFactory<dim,nstate>::select_mesh(parameters_input,parameter_handler_input[0]);
         else if constexpr (nstate > 1)
             return TestsFactory<dim,nstate-1>::create_test(parameters_input,parameter_handler_input);
         else

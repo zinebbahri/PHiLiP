@@ -98,6 +98,15 @@ public:
     static std::unique_ptr< TestsBase > select_test(
         const Parameters::AllParameters *const parameters_input,
         dealii::ParameterHandler &parameter_handler_input);
+
+    /// Selects the actual test such as grid convergence, numerical flux conversation, etc.
+    /// with a vector of parameters input.
+    /** @param[in] parameters_input Input parameters.
+     *  \return                     Smart pointer to the test
+     */
+    static std::unique_ptr< TestsBase > select_test(
+        const std::vector<Parameters::AllParameters*> &parameters_input,
+        const std::vector<dealii::ParameterHandler> &parameter_handler_input);
 };
 
 } // Tests namespace

@@ -8,6 +8,7 @@ SET(SOURCE
     target_wall_pressure.cpp
     extraction_functional.cpp
     amiet_model.cpp
+    aeroacoustic_optimization_2D.cpp
     Faddeeva.cc
     )
 

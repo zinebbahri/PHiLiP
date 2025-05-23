@@ -23,7 +23,9 @@ void FunctionalParam::declare_parameters(dealii::ParameterHandler &prm)
                           " error_normLp_volume | "
                           " error_normLp_boundary | "
                           " lift | "
-                          " drag | "
+                          " total_drag | "
+                          " pressure_drag |"
+                        //   "drag |"
                           " solution_integral | "
                           " outlet_pressure_integral | "
                           ),
@@ -36,7 +38,9 @@ void FunctionalParam::declare_parameters(dealii::ParameterHandler &prm)
                           "  error_normLp_volume | "
                           "  error_normLp_boundary | "
                           "  lift | "
-                          "  drag | "
+                          "  total_drag | "
+                          "  pressure_drag |"
+                        //   "drag"
                           "  solution_integral |"
                           "  outlet_pressure_integral |"
                           "  error_normLp_boundary>.");
@@ -94,7 +98,9 @@ void FunctionalParam::parse_parameters(dealii::ParameterHandler &prm)
         else if(functional_string == "error_normLp_volume")        {functional_type = FunctionalType::error_normLp_volume;}
         else if(functional_string == "error_normLp_boundary")      {functional_type = FunctionalType::error_normLp_boundary;}
         else if(functional_string == "lift")                       {functional_type = FunctionalType::lift;}
-        else if(functional_string == "drag")                       {functional_type = FunctionalType::drag;}
+        else if(functional_string == "total_drag")                 {functional_type = FunctionalType::total_drag;}
+        else if(functional_string == "pressure_drag")              {functional_type = FunctionalType::pressure_drag;}
+        // else if(functional_string == "drag")              {functional_type = FunctionalType::drag;}
         else if(functional_string == "solution_integral")          {functional_type = FunctionalType::solution_integral;}
         else if(functional_string == "outlet_pressure_integral")   {functional_type = FunctionalType::outlet_pressure_integral;}
 

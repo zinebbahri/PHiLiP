@@ -1311,16 +1311,27 @@ FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
                 dg,
                 LiftDragFunctional<dim,dim+2,double>::Functional_types::lift);
         }
-    }else if(functional_type == FunctionalTypeEnum::drag){
+    }else if(functional_type == FunctionalTypeEnum::/*drag*/ total_drag){
         if constexpr(dim==2 && 
                      nstate==(dim+2) && 
                      std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value)
         {
             return std::make_shared<LiftDragFunctional<dim,nstate,real>>(
                 dg,
-                LiftDragFunctional<dim,dim+2,double>::Functional_types::drag);
+                LiftDragFunctional<dim,dim+2,double>::Functional_types::/*drag*/ total_drag);
         }
-    }else if(functional_type == FunctionalTypeEnum::solution_integral) {
+    }
+    else if(functional_type == FunctionalTypeEnum::pressure_drag){
+        if constexpr(dim==2 && 
+                     nstate==(dim+2) && 
+                     std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value)
+        {
+            return std::make_shared<LiftDragFunctional<dim,nstate,real>>(
+                dg,
+                LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag);
+        }
+    }
+    else if(functional_type == FunctionalTypeEnum::solution_integral) {
         std::shared_ptr< DGBaseState<dim,nstate,double,MeshType>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double, MeshType>>(dg);
         return std::make_shared<SolutionIntegral<dim,nstate,real,MeshType>>(dg,dg_state->pde_physics_fad_fad,true,false);
     }else if(functional_type == FunctionalTypeEnum::outlet_pressure_integral) {

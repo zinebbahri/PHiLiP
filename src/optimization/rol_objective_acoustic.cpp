@@ -4,8 +4,11 @@
 #include <deal.II/optimization/rol/vector_adaptor.h>
 
 #include "global_counter.hpp"
+#include "functional/acoustic_adjoint.hpp"
 
 namespace PHiLiP {
+
+using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 
 template <int dim, int nstate>
 ROLObjectiveSimOpt<dim,nstate>::ROLObjectiveSimOpt(
@@ -27,8 +30,6 @@ ROLObjectiveSimOpt<dim,nstate>::ROLObjectiveSimOpt(
     } else {
         design_parameterization->compute_dXv_dXp(dXvdXp);
     }
-    // Create acoustic adjoint object using Amiet functional
-    AcousticAdjoint <dim,nstate,double,Triangulation> amiet_adjoint(dg,functional);
 }
 
 
@@ -93,9 +94,14 @@ void ROLObjectiveSimOpt<dim,nstate>::gradient_2(
 {
     update(des_var_sim, des_var_ctl);
 
-    amiet_adjoint.compute_dIdXd(dg->high_order_grid);
+    // pointer to functional
+    std::shared_ptr< Functional<dim,nstate,double> > functional_ptr =  std::make_shared<Functional<dim,nstate,double>>(functional);
+    // Create acoustic adjoint object using Amiet functional
+    AcousticAdjoint <dim,nstate,double,Triangulation> acoustic_adjoint(functional.dg,functional_ptr);
+
+    acoustic_adjoint.compute_dIdXd(functional.dg->high_order_grid);
     auto &dIdXp = ROL_vector_to_dealii_vector_reference(gradient_ctl);
-    dIdXp = amiet_adjoint->dIdXd;
+    dIdXp = acoustic_adjoint.dIdXd;
 
     // const bool compute_dIdW = false, compute_dIdX = true, compute_d2I = false;
     // functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );

@@ -194,6 +194,7 @@ public:
         euler_naca_drag_optimization_lift_constrained,
         euler_naca_optimization_constrained,
         viscous_naca_optimization,
+        aeroacoustic_optimization_2D,
         shock_1d,
         euler_naca0012,
         reduced_order,

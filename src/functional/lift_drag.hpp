@@ -1,6 +1,9 @@
 #ifndef __PHILIP_LIFT_DRAG_H__
 #define __PHILIP_LIFT_DRAG_H__
 
+#include <iostream>
+#include <fstream>
+
 #include "functional.h"
 #include "parameters/all_parameters.h"
 #include "physics/physics_factory.h"
@@ -16,7 +19,8 @@ class LiftDragFunctional : public Functional<dim, nstate, real>
 {
 public:
     /// @brief Switch between lift and drag functional types.
-    enum Functional_types { lift, drag };
+    enum Functional_types { lift, pressure_drag, total_drag };
+    // enum Functional_types { lift, drag };
 private:
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -157,7 +161,9 @@ public:
     {
         switch(functional_type) {
             case Functional_types::lift : force_vector = lift_vector; break;
-            case Functional_types::drag : force_vector = drag_vector; break;
+            case Functional_types::pressure_drag :force_vector = drag_vector; break;
+            case Functional_types::total_drag : force_vector = drag_vector; break;
+            // case Functional_types::drag : force_vector = drag_vector; break;
             default: break;
         }
     }
@@ -172,57 +178,91 @@ public:
             //std::cout << "Lift value: " << value << std::cout;
             //std::cout << "Lift value: " << value << std::cout;
         }
-        if (functional_type == Functional_types::drag) {
+        if (functional_type == Functional_types::pressure_drag) {
             //this->pcout << "Drag value: " << value << "\n";
             value = abs(value);
+            print_pressure_drag(value);
+        }
+        if (functional_type == Functional_types::/*drag*/ total_drag) {
+            //this->pcout << "Drag value: " << value << "\n";
+            value = abs(value);
+            print_total_drag(value);
+            LiftDragFunctional<dim,nstate,double> pressure_drag_functional(this->dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
+            pressure_drag_functional.evaluate_functional();
         }
 
         return value;
     }
 
+    void print_pressure_drag (real value)
+    {
+        std::ofstream outfile_pressure_drag;
+        outfile_pressure_drag.open("pressure_drag.dat", std::ios::app);
+        outfile_pressure_drag << value << "\n";
+    }
+
+    void print_total_drag (real value)
+    {
+        std::ofstream total_drag_file;
+        total_drag_file.open("total_drag.dat", std::ios::app);
+        total_drag_file << value << "\n";
+    }
+
 public:
     // /// Virtual function for computation of cell boundary functional term
     // /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
-    // // Computes total drag (pressure and skin friction)
     template<typename real2>
     real2 evaluate_boundary_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
         const unsigned int boundary_id,
         const dealii::Point<dim,real2> &/*phys_coord*/,
         const dealii::Tensor<1,dim,real2> &normal,
         const std::array<real2,nstate> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const
     {
-        if (boundary_id == 1001) {
-            assert(soln_at_q.size() == dim+2);
-            // const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
+        if (functional_type == Functional_types::/*drag*/ total_drag || functional_type == Functional_types::lift) {
 
-            /// Pointer to Navier-Stokes physics object
-            using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-            std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::PhysicsFactory<dim,dim+2,real2>::create_Physics(this->all_parameters, PDE_enum::navier_stokes, nullptr));
+            if (boundary_id == 1001) {
+                assert(soln_at_q.size() == dim+2);
+                // const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
 
-            // Compute pressure (same as Euler physics)
-            const real2 pressure = navier_stokes_physics->compute_pressure (soln_at_q);
+                /// Pointer to Navier-Stokes physics object
+                using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+                std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::PhysicsFactory<dim,dim+2,real2>::create_Physics(this->all_parameters, PDE_enum::navier_stokes, nullptr));
 
-            // Initialize
-			dealii::Tensor<1,dim,real2> viscous_tensor_times_normal;
-			for(int i=0; i<dim; i++){
-				viscous_tensor_times_normal[i] = 0;
-			}
-            // add viscous stress tensor contribution if viscous (i.e. not Euler)
-            if(this->all_parameters->pde_type != PDE_enum::euler) {
-                // Compute viscous stress tensor
-                const dealii::Tensor<2,dim,real2> viscous_stress_tensor = navier_stokes_physics->compute_viscous_stress_tensor_from_conservative_templated(soln_at_q, soln_grad_at_q);
-                // std::cout<<"Norm of viscous stress tensor = "<<  viscous_stress_tensor[0][0]<<std::endl;
-                for (int i=0;i<dim;i++){
-                    for (int j=0;j<dim;j++){
-                        viscous_tensor_times_normal[i]+= viscous_stress_tensor[i][j]*normal[j];
-                        std::cout<<"viscous_stress_tensor["<<i<<"]["<<j<<"]"<<  viscous_stress_tensor[i][j]<<std::endl;
+                // Compute pressure (same as Euler physics)
+                const real2 pressure = navier_stokes_physics->compute_pressure (soln_at_q);
+
+                // Initialize
+                dealii::Tensor<1,dim,real2> viscous_tensor_times_normal;
+                for(int i=0; i<dim; i++){
+                    viscous_tensor_times_normal[i] = 0;
+                }
+                // add viscous stress tensor contribution if viscous (i.e. not Euler)
+                if(this->all_parameters->pde_type != PDE_enum::euler) {
+                    // Compute viscous stress tensor
+                    const dealii::Tensor<2,dim,real2> viscous_stress_tensor = navier_stokes_physics->compute_viscous_stress_tensor_from_conservative_templated(soln_at_q, soln_grad_at_q);
+                    // std::cout<<"Norm of viscous stress tensor = "<<  viscous_stress_tensor[0][0]<<std::endl;
+                    for (int i=0;i<dim;i++){
+                        for (int j=0;j<dim;j++){
+                            viscous_tensor_times_normal[i]+= viscous_stress_tensor[i][j]*normal[j];
+                            std::cout<<"viscous_stress_tensor["<<i<<"]["<<j<<"]"<<  viscous_stress_tensor[i][j]<<std::endl;
+                        }
                     }
                 }
-            }
-            return force_dimensionalization_factor * (pressure * (normal * force_vector) -  viscous_tensor_times_normal*force_vector);
-        } 
+                return force_dimensionalization_factor * (pressure * (normal * force_vector) -  viscous_tensor_times_normal*force_vector);
+            } 
+        }
+        if (functional_type == Functional_types::pressure_drag || functional_type == Functional_types::lift) {
+            if (boundary_id == 1001) {
+            assert(soln_at_q.size() == dim+2);
+            const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
+
+            real2 pressure = euler.compute_pressure (soln_at_q);
+
+            return force_dimensionalization_factor * pressure * (normal * force_vector);
+                   } 
+        }
         return (real2) 0.0;
     }
 
