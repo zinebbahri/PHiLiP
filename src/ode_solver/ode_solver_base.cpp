@@ -82,7 +82,7 @@ void ODESolverBase<dim,real,MeshType>::interpolate_solution_polynomial_degree (c
 
 template <int dim, typename real, typename MeshType>
 void ODESolverBase<dim,real,MeshType>::valid_initial_conditions () const
-{
+{ 
     for (const auto &sol : dg->solution) {
         if (sol == std::numeric_limits<real>::lowest()) {
             throw std::invalid_argument(" User forgot to assign valid initial conditions. ");
@@ -113,7 +113,7 @@ void ODESolverBase<dim,real,MeshType>::write_ode_solver_steady_state_convergence
 
 template <int dim, typename real, typename MeshType>
 int ODESolverBase<dim,real,MeshType>::steady_state ()
-{
+{    
     try {
         valid_initial_conditions();
     }

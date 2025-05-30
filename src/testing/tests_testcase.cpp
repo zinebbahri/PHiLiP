@@ -9,7 +9,6 @@
 #include <deal.II/distributed/tria.h>
 
 #include "tests.h"
-#include "aeroacoustic_optimization_2D.hpp"
 #include "grid_study.h"
 #include "grid_refinement_study.h"
 #include "burgers_stability.h"
@@ -59,15 +58,6 @@ TestsBase::TestsBase(Parameters::AllParameters const *const parameters_input)
     , n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
     , pcout(std::cout, mpi_rank==0)
 {}
-
-TestsBase::TestsBase(const std::vector<Parameters::AllParameters*> &parameters_input)
-    : all_parameters(parameters_input[0])
-    , mpi_communicator(MPI_COMM_WORLD)
-    , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
-    , n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
-    , pcout(std::cout, mpi_rank==0)
-{}
-
 
 std::vector<int> TestsBase::get_number_1d_cells(const int n_grids) const
 {
@@ -201,53 +191,29 @@ std::string TestsBase::get_manufactured_solution_string(const Parameters::AllPar
 
 template<int dim, int nstate, typename MeshType>
 std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
-::select_mesh(const std::vector<Parameters::AllParameters*> &parameters_input,
-        std::vector<dealii::ParameterHandler> &parameter_handler_input) {
+::select_mesh(const AllParam *const parameters_input,
+              dealii::ParameterHandler &parameter_handler_input) {
     using Mesh_enum = AllParam::MeshType;
+    Mesh_enum mesh_type = parameters_input->mesh_type;
 
-    if (parameters_input.size()==1){
-        Mesh_enum mesh_type = parameters_input[0]->mesh_type;
-        if(mesh_type == Mesh_enum::default_triangulation) {
-            #if PHILIP_DIM == 1
-            return TestsFactory<dim,nstate,dealii::Triangulation<dim>>::select_test(parameters_input[0],parameter_handler_input[0]);
-            #else
-            return TestsFactory<dim,nstate,dealii::parallel::distributed::Triangulation<dim>>::select_test(parameters_input[0],parameter_handler_input[0]);
-            #endif
-        } else if(mesh_type == Mesh_enum::triangulation) {
-            return TestsFactory<dim,nstate,dealii::Triangulation<dim>>::select_test(parameters_input[0],parameter_handler_input[0]);
-        } else if(mesh_type == Mesh_enum::parallel_shared_triangulation) {
-            return TestsFactory<dim,nstate,dealii::parallel::shared::Triangulation<dim>>::select_test(parameters_input[0],parameter_handler_input[0]);
-        } else if(mesh_type == Mesh_enum::parallel_distributed_triangulation) {
-            #if PHILIP_DIM == 1
-            std::cout << "dealii::parallel::distributed::Triangulation is unavailible in 1D." << std::endl;
-            #else
-            return TestsFactory<dim,nstate,dealii::parallel::distributed::Triangulation<dim>>::select_test(parameters_input[0],parameter_handler_input[0]);
-            #endif
-        } else {
-            std::cout << "Invalid mesh type." << std::endl;
-        }
-    }
-    else{
-        Mesh_enum mesh_type = parameters_input[0]->mesh_type;
-        if(mesh_type == Mesh_enum::default_triangulation) {
-            #if PHILIP_DIM == 1
-            return TestsFactory<dim,nstate,dealii::Triangulation<dim>>::select_test(parameters_input,parameter_handler_input);
-            #else
-            return TestsFactory<dim,nstate,dealii::parallel::distributed::Triangulation<dim>>::select_test(parameters_input);
-            #endif
-        } else if(mesh_type == Mesh_enum::triangulation) {
-            return TestsFactory<dim,nstate,dealii::Triangulation<dim>>::select_test(parameters_input);
-        } else if(mesh_type == Mesh_enum::parallel_shared_triangulation) {
-            return TestsFactory<dim,nstate,dealii::parallel::shared::Triangulation<dim>>::select_test(parameters_input);
-        } else if(mesh_type == Mesh_enum::parallel_distributed_triangulation) {
-            #if PHILIP_DIM == 1
-            std::cout << "dealii::parallel::distributed::Triangulation is unavailible in 1D." << std::endl;
-            #else
-            return TestsFactory<dim,nstate,dealii::parallel::distributed::Triangulation<dim>>::select_test(parameters_input);
-            #endif
-        } else {
-            std::cout << "Invalid mesh type." << std::endl;
-        }
+    if(mesh_type == Mesh_enum::default_triangulation) {
+        #if PHILIP_DIM == 1
+        return TestsFactory<dim,nstate,dealii::Triangulation<dim>>::select_test(parameters_input,parameter_handler_input);
+        #else
+        return TestsFactory<dim,nstate,dealii::parallel::distributed::Triangulation<dim>>::select_test(parameters_input,parameter_handler_input);
+        #endif
+    } else if(mesh_type == Mesh_enum::triangulation) {
+        return TestsFactory<dim,nstate,dealii::Triangulation<dim>>::select_test(parameters_input,parameter_handler_input);
+    } else if(mesh_type == Mesh_enum::parallel_shared_triangulation) {
+        return TestsFactory<dim,nstate,dealii::parallel::shared::Triangulation<dim>>::select_test(parameters_input,parameter_handler_input);
+    } else if(mesh_type == Mesh_enum::parallel_distributed_triangulation) {
+        #if PHILIP_DIM == 1
+        std::cout << "dealii::parallel::distributed::Triangulation is unavailible in 1D." << std::endl;
+        #else
+        return TestsFactory<dim,nstate,dealii::parallel::distributed::Triangulation<dim>>::select_test(parameters_input,parameter_handler_input);
+        #endif
+    } else {
+        std::cout << "Invalid mesh type." << std::endl;
     }
 
     return nullptr;
@@ -365,7 +331,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
 
 template<int dim, int nstate, typename MeshType>
 std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
-::select_test(const std::vector<Parameters::AllParameters*> &parameters_input)
+::select_test(const std::vector<Parameters::AllParameters*> &parameters_input,
+                   const std::vector<dealii::ParameterHandler> &parameter_handler_input)
 {
 // Get the flow case type
     using Test_enum = AllParam::TestType;
@@ -377,7 +344,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
                 if (sub_nstate==1){
                     // std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_unique<ViscousNACAOptimization<dim,nstate>>(parameters_input[0]);
                     // std::shared_ptr<FlowSolverCaseBase<dim, sub_nstate>> sub_flow_solver_case = std::make_unique<ViscousNACAOptimization<dim,nstate>>(parameters_input[1]);
-                    return std::make_unique<AeroAcousticOptimization2D<dim,nstate>>(parameters_input);
+                    return std::make_unique<AeroAcousticOptimization2D<dim,nstate>>(parameters_input, parameter_handler_input);
                 }else{
                     std::cout << "Invalid nstate for wall distance sub model." << std::endl;
                     std::cout << "Only p-Poisson wall distance model is supported for RANS." << std::endl;
@@ -400,23 +367,21 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
 
 template<int dim, int nstate, typename MeshType>
 std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
-::create_test(const std::vector<Parameters::AllParameters*> &parameters_input,
-              std::vector<dealii::ParameterHandler> &parameter_handler_input)
+::create_test(AllParam const *const parameters_input,
+              dealii::ParameterHandler &parameter_handler_input)
 {
     // Recursive templating required because template parameters must be compile time constants
     // As a results, this recursive template initializes all possible dimensions with all possible nstate
     // without having 15 different if-else statements
-    if(dim == parameters_input[0]->dimension)
+    if(dim == parameters_input->dimension)
     // if(dim == parameters_input[0]->dimension)
     {
         // This template parameters dim and nstate match the runtime parameters
         // then create the selected test with template parameters dim and nstate
         // Otherwise, keep decreasing nstate and dim until it matches
-        if(nstate == parameters_input[0]->nstate) 
-            if (parameters_input.size()==1)
-                return TestsFactory<dim,nstate>::select_mesh(parameters_input,parameter_handler_input);
-            else
-                return TestsFactory<dim,nstate>::select_mesh(parameters_input,parameter_handler_input);
+        if(nstate == parameters_input->nstate) 
+        // if(nstate == parameters_input[0]->nstate) 
+            return TestsFactory<dim,nstate>::select_mesh(parameters_input,parameter_handler_input);
             // return TestsFactory<dim,nstate>::select_mesh(parameters_input,parameter_handler_input[0]);
         else if constexpr (nstate > 1)
             return TestsFactory<dim,nstate-1>::create_test(parameters_input,parameter_handler_input);
@@ -433,42 +398,6 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         return nullptr;
     }
 }
-
-// template<int dim, int nstate, typename MeshType>
-// std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
-// ::create_test(const std::vector<Parameters::AllParameters*> &parameters_input,
-//               std::vector<dealii::ParameterHandler> &parameter_handler_input)
-// {
-// // Recursive templating required because template parameters must be compile time constants
-//     // As a results, this recursive template initializes all possible dimensions with all possible nstate
-//     // without having 15 different if-else statements
-//     if(dim == parameters_input[0]->dimension)
-//     // if(dim == parameters_input[0]->dimension)
-//     {
-//         // This template parameters dim and nstate match the runtime parameters
-//         // then create the selected test with template parameters dim and nstate
-//         // Otherwise, keep decreasing nstate and dim until it matches
-//         if(nstate == parameters_input[0]->nstate) 
-//         // if(nstate == parameters_input[0]->nstate) 
-//             return TestsFactory<dim,nstate>::select_test(parameters_input,parameter_handler_input);
-//             // return TestsFactory<dim,nstate>::select_mesh(parameters_input,parameter_handler_input[0]);
-//         // else if constexpr (nstate > 1)
-//         //     return TestsFactory<dim,nstate-1>::create_test(parameters_input,parameter_handler_input);
-//         else
-//             return nullptr;
-//     }
-//     else if constexpr (dim > 1)
-//     {
-//         //return TestsFactory<dim-1,nstate>::create_test(parameters_input);
-//         return nullptr;
-//     }
-//     else
-//     {
-//         return nullptr;
-//     }
-
-// }
-
 
 // Will recursively create all the possible test sizes
 //template class TestsFactory <PHILIP_DIM,1>;

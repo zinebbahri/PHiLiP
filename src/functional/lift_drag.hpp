@@ -15,6 +15,7 @@ namespace PHiLiP {
  *  Simply zero out the default volume contribution.
  */
 template <int dim, int nstate, typename real>
+
 class LiftDragFunctional : public Functional<dim, nstate, real>
 {
 public:
@@ -35,8 +36,12 @@ private:
     /// @brief Switches between lift and drag.
     const Functional_types functional_type;
 
-    /// @brief Casts DG's physics into an Euler physics reference.
-    const Physics::Euler<dim,dim+2,FadFadType> &euler_fad_fad;
+    // /// @brief Casts DG's physics into an Euler physics reference.
+    // const Physics::Euler<dim,dim+2,FadFadType> &euler_fad_fad;
+
+/// @brief Casts DG's physics into an physics rans reference.
+    const Physics::NavierStokes<dim,dim+2,FadFadType> &NS_fad_fad;
+
     /// @brief Angle of attack retrieved from euler_fad_fad.
     const double angle_of_attack;
     /// @brief Rotation matrix based on angle of attack.
@@ -68,8 +73,10 @@ private:
     /// Compute force dimensionalization factor.
     double initialize_force_dimensionalization_factor()
     {
-        const double ref_length  = euler_fad_fad.ref_length;
-        const double dynamic_pressure_inf  = euler_fad_fad.dynamic_pressure_inf;
+        // const double ref_length  = euler_fad_fad.ref_length;
+        const double ref_length  = 1.0;
+        // const double dynamic_pressure_inf  = euler_fad_fad.dynamic_pressure_inf;
+        const double dynamic_pressure_inf  = 0.5;
 
         return 1.0 / (ref_length * dynamic_pressure_inf);
     }
@@ -149,10 +156,14 @@ public:
     LiftDragFunctional(
         std::shared_ptr<DGBase<dim,real>> dg_input,
         const Functional_types functional_type)
+        // : Functional<dim,nstate,real>(dg_input)
         : Functional<dim,nstate,real>(dg_input)
         , functional_type(functional_type)
-        , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
-        , angle_of_attack(euler_fad_fad.angle_of_attack)
+        , NS_fad_fad(dynamic_cast< Physics::NavierStokes<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
+        // , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
+        // , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadType> &>((PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler))))
+        // , euler_fad_fad(std::dynamic_pointer_cast< Physics::Euler<dim,dim+2,FadType> >(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler)))
+        , angle_of_attack(0.0)
         , rotation_matrix(initialize_rotation_matrix(angle_of_attack))
         , lift_vector(initialize_lift_vector(rotation_matrix))
         , drag_vector(initialize_drag_vector(rotation_matrix))
@@ -187,7 +198,7 @@ public:
             //this->pcout << "Drag value: " << value << "\n";
             value = abs(value);
             print_total_drag(value);
-            LiftDragFunctional<dim,nstate,double> pressure_drag_functional(this->dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
+            LiftDragFunctional<dim,nstate,double> pressure_drag_functional(this->dg, LiftDragFunctional<dim,nstate,double>::Functional_types::pressure_drag );
             pressure_drag_functional.evaluate_functional();
         }
 
@@ -213,17 +224,29 @@ public:
     // /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
     template<typename real2>
     real2 evaluate_boundary_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        [[maybe_unused]]const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
         const unsigned int boundary_id,
         const dealii::Point<dim,real2> &/*phys_coord*/,
         const dealii::Tensor<1,dim,real2> &normal,
         const std::array<real2,nstate> &soln_at_q,
+        // const std::array<real2,dim+2> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const
+        // const std::array<dealii::Tensor<1,dim,real2>,dim+2> &soln_grad_at_q) const
     {
         if (functional_type == Functional_types::/*drag*/ total_drag || functional_type == Functional_types::lift) {
 
             if (boundary_id == 1001) {
-                assert(soln_at_q.size() == dim+2);
+                std::array<real2,dim+2> soln_at_q_;
+                for(int i=0; i<dim+2; ++i)
+                {
+                    soln_at_q_[i] = soln_at_q[i];
+                }
+                std::array<dealii::Tensor<1,dim,real2>,dim+2> soln_grad_at_q_;
+                for(int i=0;i<dim+2;++i)
+                {
+                    soln_grad_at_q_[i] = soln_grad_at_q[i];
+                }
+                assert(soln_at_q_.size() == dim+2);
                 // const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
 
                 /// Pointer to Navier-Stokes physics object
@@ -231,7 +254,7 @@ public:
                 std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::PhysicsFactory<dim,dim+2,real2>::create_Physics(this->all_parameters, PDE_enum::navier_stokes, nullptr));
 
                 // Compute pressure (same as Euler physics)
-                const real2 pressure = navier_stokes_physics->compute_pressure (soln_at_q);
+                const real2 pressure = navier_stokes_physics->compute_pressure (soln_at_q_);
 
                 // Initialize
                 dealii::Tensor<1,dim,real2> viscous_tensor_times_normal;
@@ -241,7 +264,7 @@ public:
                 // add viscous stress tensor contribution if viscous (i.e. not Euler)
                 if(this->all_parameters->pde_type != PDE_enum::euler) {
                     // Compute viscous stress tensor
-                    const dealii::Tensor<2,dim,real2> viscous_stress_tensor = navier_stokes_physics->compute_viscous_stress_tensor_from_conservative_templated(soln_at_q, soln_grad_at_q);
+                    const dealii::Tensor<2,dim,real2> viscous_stress_tensor = navier_stokes_physics->compute_viscous_stress_tensor_from_conservative_templated(soln_at_q_, soln_grad_at_q_);
                     // std::cout<<"Norm of viscous stress tensor = "<<  viscous_stress_tensor[0][0]<<std::endl;
                     for (int i=0;i<dim;i++){
                         for (int j=0;j<dim;j++){
@@ -255,12 +278,22 @@ public:
         }
         if (functional_type == Functional_types::pressure_drag || functional_type == Functional_types::lift) {
             if (boundary_id == 1001) {
-            assert(soln_at_q.size() == dim+2);
-            const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
+                std::array<real2,dim+2> soln_at_q_;
+                for(int i=0; i<dim+2; ++i)
+                {
+                    soln_at_q_[i] = soln_at_q[i];
+                }
+    
+            assert(soln_at_q_.size() == dim+2);
+            // const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
+            // const Physics::Euler<dim,dim+2,real2> &euler = (dynamic_cast< const Physics::Euler<dim,dim+2,real2> >(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(this->dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler)));
 
-            real2 pressure = euler.compute_pressure (soln_at_q);
+            // const Physics::Euler<dim,dim+2,real2> &euler = std::dynamic_pointer_cast< Physics::Euler<dim,dim+2,FadType> &>(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(this->dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler));
 
-            return force_dimensionalization_factor * pressure * (normal * force_vector);
+            // real2 pressure = euler.compute_pressure (soln_at_q_);
+
+            // return force_dimensionalization_factor * pressure * (normal * force_vector);
+            return 0;
                    } 
         }
         return (real2) 0.0;
@@ -302,7 +335,9 @@ public:
         const dealii::Point<dim,real> &phys_coord,
         const dealii::Tensor<1,dim,real> &normal,
         const std::array<real,nstate> &soln_at_q,
+        // const std::array<real,dim+2> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+        // const std::array<dealii::Tensor<1,dim,real>,dim+2> &soln_grad_at_q) const override
     {
         return evaluate_boundary_integrand<real>(
             physics,
@@ -321,6 +356,8 @@ public:
         const dealii::Tensor<1,dim,FadFadType> &normal,
         const std::array<FadFadType,nstate> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
+        // const std::array<FadFadType,dim+2> &soln_at_q,
+        // const std::array<dealii::Tensor<1,dim,FadFadType>,dim+2> &soln_grad_at_q) const override
     {
         return evaluate_boundary_integrand<FadFadType>(
             physics,
@@ -338,13 +375,18 @@ public:
         const dealii::Point<dim,real> &/*phys_coord*/,
         const std::array<real,nstate> &/*soln_at_q*/,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_at_q*/) const
+        // const std::array<real,dim+2> &/*soln_at_q*/,
+        // const std::array<dealii::Tensor<1,dim,real>,dim+2> &/*soln_grad_at_q*/) const
     { return (real) 0.0; }
     /// Virtual function for Sacado computation of cell volume functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
     virtual FadFadType evaluate_volume_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
-        const dealii::Point<dim,FadFadType> &/*phys_coord*/, const std::array<FadFadType,nstate> &/*soln_at_q*/,
+        const dealii::Point<dim,FadFadType> &/*phys_coord*/, 
+        const std::array<FadFadType,nstate> &/*soln_at_q*/,
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &/*soln_grad_at_q*/) const
+        // const std::array<FadFadType,dim+2> &/*soln_at_q*/,
+        // const std::array<dealii::Tensor<1,dim,FadFadType>,dim+2> &/*soln_grad_at_q*/) const
     { return (FadFadType) 0.0; }
 
 

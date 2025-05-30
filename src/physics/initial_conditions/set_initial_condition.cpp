@@ -44,11 +44,17 @@ void SetInitialCondition<dim,nstate,real>::interpolate_initial_condition(
         std::shared_ptr< InitialConditionFunction<dim,nstate,double> > &initial_condition_function,
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
 {
+    std::cout<<"here1"<<std::endl;
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+    std::cout<<"here2"<<std::endl;
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
+    std::cout<<"here3"<<std::endl;
     dealii::VectorTools::interpolate(dg->dof_handler,*initial_condition_function,solution_no_ghost);
+    std::cout<<"here4"<<std::endl;
     dg->solution = solution_no_ghost;
+    std::cout<<"here5"<<std::endl;
     dg->sub_solution = solution_no_ghost;
+    std::cout<<"here6"<<std::endl;
 }
 
 template<int dim, int nstate, typename real>

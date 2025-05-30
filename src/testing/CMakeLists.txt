@@ -11,6 +11,7 @@ set(TESTS_SOURCE
     naca0012_optimization/euler_naca0012_optimization.cpp
     naca0012_optimization/euler_naca0012_optimization_lift_constrained.cpp
     naca0012_optimization/viscous_naca_optimization.cpp
+    aeroacoustic_optimization_2D.cpp
     shock_1d.cpp
 #euler_gaussian_bump_adjoint.cpp
     euler_cylinder.cpp

@@ -18,7 +18,6 @@ class TestsBase
 {
 public:
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
-    // const Parameters::AllParameters all_parameters_vector; ///< Pointer to all parameters
     //const int ndim; ///< Number of dimensions. Run-time variable instead of compile-time constant.
     //const int nstate; ///< Number of state variables. Run-time variable instead of compile-time constant.
 
@@ -28,13 +27,6 @@ public:
     /** @param[in] parameters_input Input parameters.
      */
     explicit TestsBase(const Parameters::AllParameters *const parameters_input);
-
-    /// Constructor with a vector of parameters input.
-    /** @param[in] parameters_input Input parameters.
-     */ 
-    explicit TestsBase(const std::vector<Parameters::AllParameters*> &parameters_input);
-                        //    const std::vector<dealii::ParameterHandler> &parameter_handler_input)
-    
 
     /// Destructor.
     virtual ~TestsBase() = default;
@@ -83,37 +75,21 @@ public:
     /** Must be called with the highest number possible of dimension and nstate. For example
      *
      *  TestBase test = TestFactory::create_test<3,5>(parameters_input)
-    //  */
-    // /** @param[in] parameters_input Input parameters.
-    //  *  \return                     Smart pointer to the test
-    //  */
-    // static std::unique_ptr< TestsBase > create_test(
-    //     const Parameters::AllParameters *const parameters_input,
-    //     dealii::ParameterHandler &parameter_handler_input);
-
-    //Creates test with a vector of parameters input.
+     */
     /** @param[in] parameters_input Input parameters.
      *  \return                     Smart pointer to the test
      */
-     static std::unique_ptr< TestsBase > create_test(
-        const std::vector<Parameters::AllParameters*> &parameters_input,
-        std::vector<dealii::ParameterHandler> &parameter_handler_input);
+    static std::unique_ptr< TestsBase > create_test(
+        const Parameters::AllParameters *const parameters_input,
+        dealii::ParameterHandler &parameter_handler_input);
 
-    // /// selects the mesh type to be used in the test
-    // /** @param[in] parameters_input Input parameters.
-    //  *  \return                     Smart pointer to the test
-    //  */
-    // static std::unique_ptr< TestsBase > select_mesh(
-    //     const Parameters::AllParameters *const parameters_input,
-    //     dealii::ParameterHandler &parameter_handler_input);
-
-            /// selects the mesh type to be used in the test
+    /// selects the mesh type to be used in the test
     /** @param[in] parameters_input Input parameters.
      *  \return                     Smart pointer to the test
      */
     static std::unique_ptr< TestsBase > select_mesh(
-        const std::vector<Parameters::AllParameters*> &parameters_input,
-        std::vector<dealii::ParameterHandler> &parameter_handler_input);
+        const Parameters::AllParameters *const parameters_input,
+        dealii::ParameterHandler &parameter_handler_input);
 
     /// Selects the actual test such as grid convergence, numerical flux conversation, etc.
     /** @param[in] parameters_input Input parameters.
@@ -129,7 +105,8 @@ public:
      *  \return                     Smart pointer to the test
      */
     static std::unique_ptr< TestsBase > select_test(
-        const std::vector<Parameters::AllParameters*> &parameters_input);
+        const std::vector<Parameters::AllParameters*> &parameters_input,
+        const std::vector<dealii::ParameterHandler> &parameter_handler_input);
 };
 
 } // Tests namespace

@@ -106,10 +106,16 @@ public:
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
     {
         if (boundary_id == 1001) {
-            assert(soln_at_q.size() == dim+2);
+            std::array<real2,dim+2> soln_at_q_;
+                for(int i=0; i<dim+2; ++i)
+                {
+                    soln_at_q_[i] = soln_at_q[i];
+                }
+                assert(soln_at_q_.size() == dim+2);
+            // assert(soln_at_q.size() == dim+2);
             const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
 
-            real2 pressure = euler.compute_pressure (soln_at_q);
+            real2 pressure = euler.compute_pressure (soln_at_q_);
 
 			dealii::Tensor<1,dim,real2> distance_vector; 
 			for (int d = 0; d < dim; ++d) {
