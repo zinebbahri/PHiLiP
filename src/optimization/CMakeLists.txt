@@ -2,6 +2,7 @@ set(TESTS_SOURCE
     rol_to_dealii_vector.cpp
     dealii_solver_rol_vector.cpp
     flow_constraints.cpp
+    flow_constraints_physics_model.cpp
     rol_objective.cpp
     rol_objective_acoustic.cpp
     full_space_step.cpp

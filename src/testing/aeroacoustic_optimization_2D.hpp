@@ -23,7 +23,7 @@
 #include "dg/dg_base.hpp"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
-#include "optimization/flow_constraints.hpp"
+#include "optimization/flow_constraints_physics_model.hpp"
 #include <deal.II/base/parameter_handler.h>
 
 #include <iostream>
@@ -151,13 +151,13 @@ protected:
 
     int check_flow_constraints(
         const unsigned int nx_ffd,
-        ROL::Ptr<FlowConstraints<dim>> flow_constraints,
+        ROL::Ptr<FlowConstraintsPhysicsModel<dim>> flow_constraints,
         ROL::Ptr<ROL::Vector<double>> design_simulation,
         ROL::Ptr<ROL::Vector<double>> design_control,
         ROL::Ptr<ROL::Vector<double>> dual_equality_state);
     int check_objective(
         ROL::Ptr<ROL::Objective_SimOpt<double>> objective_simopt,
-        ROL::Ptr<FlowConstraints<dim>> flow_constraints,
+        ROL::Ptr<FlowConstraintsPhysicsModel<dim>> flow_constraints,
         ROL::Ptr<ROL::Vector<double>> design_simulation,
         ROL::Ptr<ROL::Vector<double>> design_control,
         ROL::Ptr<ROL::Vector<double>> dual_equality_state);

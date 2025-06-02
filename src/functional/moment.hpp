@@ -27,7 +27,7 @@ private:
 	const dealii::Point<dim,double> moment_origin;
 
     /// @brief Casts DG's physics into an Euler physics reference.
-    const Physics::Euler<dim,dim+2,FadFadType> &euler_fad_fad;
+    // const Physics::Euler<dim,dim+2,FadFadType> &euler_fad_fad;
 
     /// Pressure induced drag is given by
     /**
@@ -40,12 +40,15 @@ private:
      *
      */
     const double force_dimensionalization_factor;
+    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
     /// Compute force dimensionalization factor.
     double initialize_force_dimensionalization_factor()
     {
-        const double ref_length  = euler_fad_fad.ref_length;
-        const double dynamic_pressure_inf  = euler_fad_fad.dynamic_pressure_inf;
+        // const double ref_length  = euler_fad_fad.ref_length;
+        const double ref_length  = 1.0;
+        // const double dynamic_pressure_inf  = euler_fad_fad.dynamic_pressure_inf;
+        const double dynamic_pressure_inf  = 0.5;
 
         return 1.0 / (ref_length * dynamic_pressure_inf);
     }
@@ -80,14 +83,16 @@ public:
 		const dealii::Point<dim,double> moment_origin)
         : Functional<dim,nstate,real>(dg_input)
 		, moment_origin(moment_origin)
-        , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
+        // , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
         , force_dimensionalization_factor(initialize_force_dimensionalization_factor())
+        , all_parameters(dg_input->all_parameters)
     { }
 
     real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override
     {
         //if(Functional<dim,nstate,real>::dg->get_residual_l2norm() > 1e-9) return 1.7e199;
         double value = Functional<dim,nstate,real>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);
+        // double value = Functional<dim,dim+2,real>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);
 
 		//this->pcout << "ZMoment value: " << value << "\n";
         return value;
@@ -98,7 +103,7 @@ public:
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
     template<typename real2>
     real2 evaluate_boundary_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        [[maybe_unused]]const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
         const unsigned int boundary_id,
         const dealii::Point<dim,real2> &phys_coord,
         const dealii::Tensor<1,dim,real2> &normal,
@@ -113,9 +118,16 @@ public:
                 }
                 assert(soln_at_q_.size() == dim+2);
             // assert(soln_at_q.size() == dim+2);
-            const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
+            // const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
 
-            real2 pressure = euler.compute_pressure (soln_at_q_);
+            // real2 pressure = euler.compute_pressure (soln_at_q_);
+
+            /// Pointer to Navier-Stokes physics object
+            using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+            std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::PhysicsFactory<dim,dim+2,real2>::create_Physics(this->all_parameters, PDE_enum::navier_stokes, nullptr));
+
+            // Compute pressure (same as Euler physics)
+            const real2 pressure = navier_stokes_physics->compute_pressure (soln_at_q_);
 
 			dealii::Tensor<1,dim,real2> distance_vector; 
 			for (int d = 0; d < dim; ++d) {

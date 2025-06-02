@@ -1085,7 +1085,7 @@ int ViscousNACAOptimization<dim,nstate>
 
     LiftDragFunctional<dim,nstate,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
     LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::total_drag );
-    LiftDragFunctional<dim,nstate,double> pressure_drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
+    // LiftDragFunctional<dim,nstate,double> pressure_drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
     // LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
     ZMomentFunctional<dim,nstate,double> moment_functional( dg, {0.25, 0.0} );
     GeometricVolume<dim,nstate,double> volume_functional( dg );
@@ -1117,7 +1117,7 @@ int ViscousNACAOptimization<dim,nstate>
 
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
-              << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
+            //   << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
             //   << ". Current OASPL = " << acoustic_functional.evaluate_functional()
               << ". Current Z-moment = " << moment_functional.evaluate_functional()
               << std::endl;
@@ -1483,7 +1483,7 @@ int ViscousNACAOptimization<dim,nstate>
     }
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
-              << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
+            //   << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
               << ". Drag with quadratic lift penalty = " << objective->value(*simulation_variables, *control_variables, tol);
     static int resulting_optimization = 5000;
     std::cout << "Outputting final grid resulting_optimization: " << resulting_optimization << std::endl;

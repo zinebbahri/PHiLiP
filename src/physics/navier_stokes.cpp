@@ -557,9 +557,9 @@ dealii::Tensor<2,dim,real2> NavierStokes<dim,nstate,real>
     
     // Step 2: Gradient of primitive solution
     const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real2>(conservative_soln, conservative_soln_gradient);
-    for (int i=0;i<dim;i++){
-            std::cout<<"primitive solution gradient["<<i<<"]"<< primitive_soln_gradient[i]<<std::endl;
-                }
+    // for (int i=0;i<dim;i++){
+            // std::cout<<"primitive solution gradient["<<i<<"]"<< primitive_soln_gradient[i]<<std::endl;
+                // }
 
     // Viscous stress tensor, \tau_{i,j}
     const dealii::Tensor<2,dim,real2> viscous_stress_tensor = compute_viscous_stress_tensor<real2>(primitive_soln,primitive_soln_gradient);
