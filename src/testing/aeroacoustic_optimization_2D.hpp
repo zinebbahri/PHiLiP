@@ -69,13 +69,13 @@ public:
     int run_test () const;
 
     /// Pointer to sub dg so it can be accessed externally.
-    std::shared_ptr<DGBase<dim, double>> dg;
+    // std::shared_ptr<DGBase<dim, double>> dg;
     /// Pointer to ode solver so it can be accessed externally.
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
+    // std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
     /// Pointer to sub dg so it can be accessed externally.
-    std::shared_ptr<DGBase<dim, double>> sub_dg;
+    // std::shared_ptr<DGBase<dim, double>> sub_dg;
     /// Pointer to sub ode solver so it can be accessed externally.
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver = nullptr;
+    // std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver = nullptr;
 
 
 protected:
@@ -109,12 +109,12 @@ protected:
     /// Performs mesh adaptation.
     /** Currently implemented for steady state flows.
      */
-    void perform_steady_state_mesh_adaptation(std::shared_ptr<DGBase<dim, double>> dg) const;
+    void perform_steady_state_mesh_adaptation(std::shared_ptr<DGBase<dim, double>> dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver) const;
 
     /// Actual test for which the number of design variables can be inputted.
-    int optimize (const unsigned int nx_ffd, const unsigned int poly_degree, 
+    int optimize (const unsigned int nx_ffd, const unsigned int poly_degree/*, 
                   std::shared_ptr<DGBase<dim, double>> dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver,
-                  std::shared_ptr<DGBase<dim, double>> sub_dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver) const;
+                  std::shared_ptr<DGBase<dim, double>> sub_dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver*/) const;
 
     ROL::Ptr<ROL::Vector<double>> getDesignVariables(
         ROL::Ptr<ROL::Vector<double>> simulation_variables,

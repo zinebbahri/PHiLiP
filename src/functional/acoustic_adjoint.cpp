@@ -33,8 +33,8 @@
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparsity_tools.h>
 
-#include "optimization/design_parameterization/ffd_parameterization.hpp"
-// #include "mesh/free_form_deformation.h"
+// #include "optimization/design_parameterization/ffd_parameterization.hpp"
+#include "mesh/free_form_deformation.h"
 
 namespace PHiLiP {
 

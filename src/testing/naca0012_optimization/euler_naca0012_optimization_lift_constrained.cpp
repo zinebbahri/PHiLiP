@@ -1058,7 +1058,8 @@ int EulerNACADragOptimizationLiftConstrained<dim,nstate>
 
     ffd.output_ffd_vtu(8999);
 
-    std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
+    // std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
+    std::shared_ptr<FreeFormDeformationParameterization<dim>> design_parameterization = 
                         std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
 
     auto flow_constraints  = ROL::makePtr<FlowConstraints<dim>>(dg,design_parameterization);

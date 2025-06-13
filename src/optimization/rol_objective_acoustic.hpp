@@ -1,5 +1,5 @@
-#ifndef __ROLOBJECTIVESIMOPT_H__
-#define __ROLOBJECTIVESIMOPT_H__
+#ifndef __ROLACOUSTICOBJECTIVESIMOPT_H__
+#define __ROLACOUSTICOBJECTIVESIMOPT_H__
 
 #include "ROL_Objective_SimOpt.hpp"
 
@@ -8,7 +8,9 @@
 #include "functional/functional.h"
 
 #include "design_parameterization/base_parameterization.hpp"
+#include "design_parameterization/ffd_parameterization.hpp"
 
+#include "functional/amiet_model.hpp"
 #include "functional/acoustic_adjoint.hpp"
 
 namespace PHiLiP {
@@ -23,13 +25,16 @@ using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
  *  turn, updates the DGBase.HighOrderGrid.volume_nodes.
  */
 template <int dim, int nstate>
-class ROLObjectiveSimOpt : public ROL::Objective_SimOpt<double> {
+class ROLAcousticObjectiveSimOpt : public ROL::Objective_SimOpt<double> {
 private:
     /// Functional to be evaluated
-    Functional<dim,nstate,double> &functional;
+    // Functional<dim,nstate,double> &functional;
 
     /// Design parameterization to link design variables with volume nodes.
-    std::shared_ptr<BaseParameterization<dim>> design_parameterization;
+    std::shared_ptr<FreeFormDeformationParameterization<dim>> design_parameterization;
+
+    //DG to construct functionals
+    std::shared_ptr<DGBase<dim,double,Triangulation>> dg;
 
     /// Design variables.
     dealii::LinearAlgebra::distributed::Vector<double> design_var;
@@ -40,13 +45,22 @@ public:
     dealii::TrilinosWrappers::SparseMatrix dXvdXp;
 
     /// Constructor.
-    ROLObjectiveSimOpt(
-        Functional<dim,nstate,double> &_functional,
-        std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
+    ROLAcousticObjectiveSimOpt(
+        std::shared_ptr<DGBase<dim,double,Triangulation>> dg_input,
+        // Functional<dim,nstate,double> &_functional,
+        std::shared_ptr<FreeFormDeformationParameterization<dim>> _design_parameterization,
         std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp = nullptr);
   
     using ROL::Objective_SimOpt<double>::value;
     using ROL::Objective_SimOpt<double>::update;
+
+    dealii::Point<dim,double> new_extraction_point;
+
+    // Functional to be evaluated
+    std::shared_ptr<AmietModelFunctional<dim,nstate,double,Triangulation>> functional = nullptr;
+
+    // Acoustic adjoint pointer
+    std::shared_ptr<AcousticAdjoint<dim,nstate,double,Triangulation>> acoustic_adjoint = nullptr;
   
     /// Update the simulation and control variables.
     void update(
@@ -127,7 +141,7 @@ public:
         const ROL::Vector<double> &des_var_ctl,
         double &/*tol*/ ) override;
 
-}; // ROLObjectiveSimOpt
+}; // ROLAcousticObjectiveSimOpt
 
 } // PHiLiP namespace
 

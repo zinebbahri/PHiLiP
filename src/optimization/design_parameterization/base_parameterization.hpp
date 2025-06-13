@@ -30,6 +30,10 @@ public:
     /// Computes derivative of volume nodes w.r.t. design parameters.
     virtual void compute_dXv_dXp(MatrixType &dXv_dXp) const = 0;
 
+     /// Given an initial point in the undeformed initial parallepiped, return the 
+    /// position of the new point location using the current control point locations.
+    // virtual dealii::Point<dim,double> ffd_new_point_location (dealii::Point<dim,double> &initial_point);
+    
     /// Outputs design variables. Doesn't output anything if not overridden.
     virtual void output_design_variables(const unsigned int /*iteration_no*/) const;
     

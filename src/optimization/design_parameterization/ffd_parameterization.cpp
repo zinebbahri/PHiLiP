@@ -34,6 +34,13 @@ void FreeFormDeformationParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv
     ffd.get_dXvdXp(*(this->high_order_grid), ffd_design_variables_indices_dim, dXv_dXp);
 }
 
+
+template<int dim>
+dealii::Point<dim,double> FreeFormDeformationParameterization<dim> :: ffd_new_point_location (dealii::Point<dim,double> &initial_point)
+{
+    return ffd.new_point_location(initial_point/*, ffd.control_pts*/);
+}
+
 template<int dim>
 bool FreeFormDeformationParameterization<dim> :: update_mesh_from_design_variables(
     const MatrixType &dXv_dXp,
@@ -80,4 +87,5 @@ unsigned int FreeFormDeformationParameterization<dim> :: get_number_of_design_va
 }
 
 template class FreeFormDeformationParameterization<PHILIP_DIM>;
+// template dealii::Point<PHILIP_DIM, double> FreeFormDeformationParameterization<PHILIP_DIM> :: ffd_new_point_location (dealii::Point<PHILIP_DIM,double>&);
 } // PHiLiP namespace

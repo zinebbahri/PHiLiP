@@ -16,6 +16,9 @@ public:
     /// Constructor
     explicit InnerVolParameterization(
         std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid); 
+    
+    // /// Destructor
+    // ~InnerVolParameterization() {};
 
     /// Initializes design variables with inner volume nodes and set locally owned and ghost indices. Overrides the virtual function in base class.
     void initialize_design_variables(VectorType &design_var) override;
@@ -24,6 +27,10 @@ public:
     /** dXv_dXp is a rectangular matrix of dimension n_vol_nodes x n_inner_nodes.
      */
     void compute_dXv_dXp(MatrixType &dXv_dXp) const override;
+
+    // /// Given an initial point in the undeformed initial parallepiped, return the 
+    // /// position of the new point location using the current control point locations.
+    // dealii::Point<dim,double> ffd_new_point_location (dealii::Point<dim,double> &initial_point) override;
     
     /// Checks if the design variables have changed and updates inner volume nodes of high order grid. 
     bool update_mesh_from_design_variables(

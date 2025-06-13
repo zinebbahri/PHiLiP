@@ -49,7 +49,7 @@
 #include "optimization/rol_to_dealii_vector.hpp"
 #include "optimization/flow_constraints.hpp"
 #include "optimization/flow_constraints_physics_model.hpp"
-// #include "optimization/rol_objective_acoustic.hpp"
+#include "optimization/rol_objective_acoustic.hpp"
 #include "optimization/rol_objective.hpp"
 #include "optimization/constraintfromobjective_simopt.hpp"
 
@@ -752,7 +752,7 @@ getSlackBoundConstraint(
 }
 
 template<int dim, int nstate>
-void AeroAcousticOptimization2D<dim,nstate>::perform_steady_state_mesh_adaptation(std::shared_ptr<DGBase<dim, double>> dg) const
+void AeroAcousticOptimization2D<dim,nstate>::perform_steady_state_mesh_adaptation(std::shared_ptr<DGBase<dim, double>> dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver) const
 {
     std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,double>>(dg, &(this->all_param.mesh_adaptation_param));
     const int total_adaptation_cycles = this->all_param.mesh_adaptation_param.total_mesh_adaptation_cycles;
@@ -771,8 +771,8 @@ void AeroAcousticOptimization2D<dim,nstate>::perform_steady_state_mesh_adaptatio
         }
         
         meshadaptation->adapt_mesh();
-        this->ode_solver->steady_state();
-        residual_norm = this->ode_solver->residual_norm;
+        ode_solver->steady_state();
+        residual_norm = ode_solver->residual_norm;
         // flow_solver_case->steady_state_postprocessing(dg); 
     }
 
@@ -793,7 +793,7 @@ int AeroAcousticOptimization2D<dim,nstate>
         // for (const unsigned int n_des_var : n_des_var_list) {
             // const unsigned int nx_ffd = n_des_var + 2;
             const unsigned int nx_ffd = 10;
-            test_error += optimize(nx_ffd, poly_degree, this->dg, this->ode_solver, this->sub_dg, this->sub_ode_solver);
+            test_error += optimize(nx_ffd, poly_degree/*, this->header_dg, this->ode_solver, this->header_sub_dg, this->sub_ode_solver*/);
         // }
     // }
     return test_error;
@@ -801,9 +801,9 @@ int AeroAcousticOptimization2D<dim,nstate>
 
 template<int dim, int nstate>
 int AeroAcousticOptimization2D<dim,nstate>
-::optimize (const unsigned int nx_ffd, const unsigned int level,
+::optimize (const unsigned int nx_ffd, const unsigned int level/*,
             std::shared_ptr<DGBase<dim, double>> dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver,
-            std::shared_ptr<DGBase<dim, double>> sub_dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver) const
+            std::shared_ptr<DGBase<dim, double>> sub_dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver*/) const
 {
     int test_error = 0;
 
@@ -1089,18 +1089,18 @@ int AeroAcousticOptimization2D<dim,nstate>
             dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
             airfoil_data.airfoil_type = "NACA";
             airfoil_data.naca_id      = "0012";
-            airfoil_data.airfoil_length = 0.4;
-            airfoil_data.height         = 4.0;
-            airfoil_data.length_b2      = 4.0;
-            airfoil_data.incline_factor = 0.08;
-            airfoil_data.bias_factor    = 4.0; 
-            airfoil_data.refinements    = 0;
+            airfoil_data.airfoil_length = all_param.flow_solver_param.airfoil_length;
+            airfoil_data.height         = all_param.flow_solver_param.height;
+            airfoil_data.length_b2      = all_param.flow_solver_param.length_b2;
+            airfoil_data.incline_factor = all_param.flow_solver_param.incline_factor;
+            airfoil_data.bias_factor    = all_param.flow_solver_param.bias_factor; 
+            airfoil_data.refinements    = all_param.flow_solver_param.refinements;
 
-            airfoil_data.n_subdivision_x_0 = 60;
-            airfoil_data.n_subdivision_x_1 = 70;
-            airfoil_data.n_subdivision_x_2 = 50;
-            airfoil_data.n_subdivision_y = 50;
-            airfoil_data.airfoil_sampling_factor = 100; 
+            airfoil_data.n_subdivision_x_0 = all_param.flow_solver_param.n_subdivision_x_0;
+            airfoil_data.n_subdivision_x_1 = all_param.flow_solver_param.n_subdivision_x_1;
+            airfoil_data.n_subdivision_x_2 = all_param.flow_solver_param.n_subdivision_x_2;
+            airfoil_data.n_subdivision_y = all_param.flow_solver_param.n_subdivision_y;
+            airfoil_data.airfoil_sampling_factor = all_param.flow_solver_param.airfoil_sampling_factor; 
 
             dealii::GridGenerator::Airfoil::create_triangulation(*naca0012_mesh, airfoil_data);
 
@@ -1120,8 +1120,9 @@ int AeroAcousticOptimization2D<dim,nstate>
             const int poly_degree = level;
     // std::shared_ptr<DGBase<dim, double>> dg_bis;
     // dg_bis = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, &sub_all_param, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, grid);
-   dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, &sub_all_param, poly_degree,flow_solver_param.max_poly_degree_for_adaptation, grid_degree, naca0012_mesh);
-   sub_dg = DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, sub_poly_degree, sub_flow_solver_param.max_poly_degree_for_adaptation, sub_grid_degree, naca0012_mesh);
+//    dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, &sub_all_param, poly_degree,flow_solver_param.max_poly_degree_for_adaptation, grid_degree, naca0012_mesh);
+   std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, &sub_all_param, poly_degree,flow_solver_param.max_poly_degree_for_adaptation, grid_degree, naca0012_mesh);
+   std::shared_ptr < DGBase<dim, double> > sub_dg = DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, sub_poly_degree, sub_flow_solver_param.max_poly_degree_for_adaptation, sub_grid_degree, naca0012_mesh);
             // dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
             // sub_dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
         // }
@@ -1140,13 +1141,13 @@ int AeroAcousticOptimization2D<dim,nstate>
         dg->allocate_system(false,false,false);
     }
 
-    if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
-        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
-        /*std::shared_ptr<ODE::ODESolverBase<dim, double>>*/ ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
-    }
-    else{
-        /*std::shared_ptr<ODE::ODESolverBase<dim, double>>*/ ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-    }
+    // if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
+    //     std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
+    //     /*std::shared_ptr<ODE::ODESolverBase<dim, double>>*/ ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
+    // }
+    // else{
+        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    // }
     // flow_solver_case->display_flow_solver_setup(dg);
 
     if(flow_solver_param.restart_computation_from_file == true) {
@@ -1240,13 +1241,13 @@ int AeroAcousticOptimization2D<dim,nstate>
     // sub_dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
     sub_dg->allocate_system();
 
-    if(sub_ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || sub_ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
-        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(sub_dg);
-        /*std::shared_ptr<ODE::ODESolverBase<dim, double>>*/ sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg, pod);
-    }
-    else{
-        /*std::shared_ptr<ODE::ODESolverBase<dim, double>>*/ sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg);
-    }
+    // if(sub_ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || sub_ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
+    //     std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(sub_dg);
+    //     /*std::shared_ptr<ODE::ODESolverBase<dim, double>>*/ sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg, pod);
+    // }
+    // else{
+        std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg);
+    // }
 
     pcout << "Initializing sub solution with initial condition function... " << std::flush;
     SetInitialCondition<dim,1,double>::set_initial_condition(InitialConditionFactory<dim, 1, double>::create_InitialConditionFunction(&sub_all_param), sub_dg, &sub_all_param);
@@ -1344,7 +1345,7 @@ int AeroAcousticOptimization2D<dim,nstate>
         
         if(use_isotropic_mesh_adaptation)
         {
-            perform_steady_state_mesh_adaptation(dg);
+            perform_steady_state_mesh_adaptation(dg, ode_solver);
         }
 
 }
@@ -1395,32 +1396,32 @@ int AeroAcousticOptimization2D<dim,nstate>
     std::ofstream outfile_total_drag;
     outfile_total_drag.open("total_drag.dat");
 
-    // dealii::Point<dim,double> extraction_point;
-    // if constexpr(dim==2){
-    //         extraction_point[0] = 0.36;
-    //         extraction_point[1] = 0.00546019;
-    //     } else if constexpr(dim==3){
-    //         extraction_point[0] = 0.36;
-    //         extraction_point[1] = 0.00546019;
-    //         extraction_point[2] = 0;
-    //     }
-    //     int number_of_sampling = 200;
+    dealii::Point<dim,double> extraction_point;
+    if constexpr(dim==2){
+            extraction_point[0] = 0.36;
+            extraction_point[1] = 0.00546019;
+        } else if constexpr(dim==3){
+            extraction_point[0] = 0.36;
+            extraction_point[1] = 0.00546019;
+            extraction_point[2] = 0;
+        }
+        int number_of_sampling = 200;
 
-    // ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
-    // // ExtractionFunctional<dim,dim+2,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
+    ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
+    // ExtractionFunctional<dim,dim+2,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
 
-    // dealii::Point<3,double> observer_coord_ref;
-    // observer_coord_ref[0] = 0.0;
-    // observer_coord_ref[1] = 0.0;
-    // observer_coord_ref[2] = 2.0;
+    dealii::Point<3,double> observer_coord_ref;
+    observer_coord_ref[0] = 0.0;
+    observer_coord_ref[1] = 0.0;
+    observer_coord_ref[2] = 2.0;
 
-    // AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg,boundary_layer_extraction,observer_coord_ref);
-    // // AmietModelFunctional<dim,dim+2,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,dim+2,double,Triangulation>(dg,boundary_layer_extraction,observer_coord_ref);
+    AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg,boundary_layer_extraction,observer_coord_ref);
+    // AmietModelFunctional<dim,dim+2,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,dim+2,double,Triangulation>(dg,boundary_layer_extraction,observer_coord_ref);
 
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
             //   << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
-            //   << ". Current OASPL = " << acoustic_functional.evaluate_functional()
+              << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
               << ". Current Z-moment = " << moment_functional.evaluate_functional()
               << std::endl;
 
@@ -1460,7 +1461,8 @@ int AeroAcousticOptimization2D<dim,nstate>
 
     ffd.output_ffd_vtu(8999);
 
-    std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
+    // std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
+    std::shared_ptr<FreeFormDeformationParameterization<dim>> design_parameterization = 
                         std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
 
     auto flow_constraints  = ROL::makePtr<FlowConstraintsPhysicsModel<dim>>(sub_dg,dg,design_parameterization);
@@ -1521,11 +1523,10 @@ int AeroAcousticOptimization2D<dim,nstate>
         // Objective
         auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, design_parameterization, precomputed_dXvdXp );
         // auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,dim+2>>( drag_functional, design_parameterization, precomputed_dXvdXp );
-        objective = drag_objective;
+        // objective = drag_objective;
 
-        // auto acoustic_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( acoustic_functional, design_parameterization, precomputed_dXvdXp );
-
-        // objective = acoustic_objective;
+        auto acoustic_objective = ROL::makePtr<ROLAcousticObjectiveSimOpt<dim,nstate>>( dg, design_parameterization, precomputed_dXvdXp );
+        objective = acoustic_objective;
 
         // Additional lift constraint
         // auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp );
@@ -1808,6 +1809,7 @@ int AeroAcousticOptimization2D<dim,nstate>
         }
     }
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
+              << " Current OASPL = " << acoustic_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
             //   << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
               << ". Drag with quadratic lift penalty = " << objective->value(*simulation_variables, *control_variables, tol);

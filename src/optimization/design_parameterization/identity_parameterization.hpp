@@ -17,6 +17,9 @@ public:
     explicit IdentityParameterization(
         std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid); 
 
+    /// Destructor
+    // ~IdentityParameterization() {};
+
     /// Initializes design variables with volume nodes and set locally owned and ghost indices. Overrides the virtual function in base class.
     void initialize_design_variables(VectorType &design_var) override;
     
@@ -24,6 +27,10 @@ public:
     /** As the volume nodes are the design parameters, dXv_dXp is identity.
      */
     void compute_dXv_dXp(MatrixType &dXv_dXp) const override;
+
+    // /// Given an initial point in the undeformed initial parallepiped, return the 
+    // /// position of the new point location using the current control point locations.
+    // dealii::Point<dim,double> ffd_new_point_location (dealii::Point<dim,double> &initial_point) const override;
     
     /// Checks if the design variables have changed and updates volume nodes. 
     bool update_mesh_from_design_variables(

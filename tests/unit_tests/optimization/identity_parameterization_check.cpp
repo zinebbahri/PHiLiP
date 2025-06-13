@@ -41,6 +41,7 @@ int main (int argc, char * argv[])
 
 
     std::unique_ptr<BaseParameterization<dim>> design_parameterization = 
+    // std::shared_ptr<FreeFormDeformationParameterization<dim>> design_parameterization = 
                         std::make_unique<IdentityParameterization<dim>>(dg->high_order_grid);
 
     VectorType design_var;

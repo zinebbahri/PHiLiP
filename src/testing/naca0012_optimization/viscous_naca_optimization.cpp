@@ -859,10 +859,10 @@ int ViscousNACAOptimization<dim,nstate>
         ffd_origin = dealii::Point<dim> (-0.60,-0.51);
         ffd_rectangle_lengths = std::array<double,dim> {{1.0+0.2,1.0+0.02}};
     } else if (grid_type == GridType::naca0012) {
-        // ffd_origin = dealii::Point<dim> (0.0,-0.061);
-        // ffd_rectangle_lengths = std::array<double,dim> {{0.999,0.122}};
-           ffd_origin = dealii::Point<dim> (-0.1,-0.1);
-           ffd_rectangle_lengths = std::array<double,dim> {{0.6,0.2}};
+        ffd_origin = dealii::Point<dim> (0.0,-0.061);
+        ffd_rectangle_lengths = std::array<double,dim> {{0.999,0.122}};
+        //    ffd_origin = dealii::Point<dim> (-0.1,-0.1);
+        //    ffd_rectangle_lengths = std::array<double,dim> {{0.6,0.2}};
             //ffd_rectangle_lengths = std::array<double,dim> {{1.0,0.122}};
         }
 
@@ -980,7 +980,7 @@ int ViscousNACAOptimization<dim,nstate>
         if (dim==2) {
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",1);
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref"+std::to_string(level)+".msh",1);
-            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref3.msh",1);
+            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref3.msh",1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", 1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", true, 1, false);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh", 1);
@@ -988,46 +988,46 @@ int ViscousNACAOptimization<dim,nstate>
             //naca0012_mesh->refine_global();
 
     // using dealii Grid Generator
-            std::shared_ptr<Triangulation> naca0012_mesh = std::make_shared<Triangulation> (
-        #if dim!=1
-            this->mpi_communicator
-        #endif
-            );
+        //     std::shared_ptr<Triangulation> naca0012_mesh = std::make_shared<Triangulation> (
+        // #if dim!=1
+        //     this->mpi_communicator
+        // #endif
+        //     );
 
-            dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
-            airfoil_data.airfoil_type = "NACA";
-            airfoil_data.naca_id      = "0012";
-            airfoil_data.airfoil_length = 1;
-            airfoil_data.height         = 4.0;
-            airfoil_data.length_b2      = 4.0;
-            airfoil_data.incline_factor = 0.08;
-            airfoil_data.bias_factor    = 4.0; 
-            airfoil_data.refinements    = 0;
+        //     dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
+        //     airfoil_data.airfoil_type = "NACA";
+        //     airfoil_data.naca_id      = "0012";
+        //     airfoil_data.airfoil_length = 1;
+        //     airfoil_data.height         = 4.0;
+        //     airfoil_data.length_b2      = 4.0;
+        //     airfoil_data.incline_factor = 0.08;
+        //     airfoil_data.bias_factor    = 4.0; 
+        //     airfoil_data.refinements    = 0;
 
-            airfoil_data.n_subdivision_x_0 = 60;//150;
-            airfoil_data.n_subdivision_x_1 = 70;//175;
-            airfoil_data.n_subdivision_x_2 = 50;//125;
-            airfoil_data.n_subdivision_y = 50;//125;
-            airfoil_data.airfoil_sampling_factor = 100; 
+        //     airfoil_data.n_subdivision_x_0 = 60;//150;
+        //     airfoil_data.n_subdivision_x_1 = 70;//175;
+        //     airfoil_data.n_subdivision_x_2 = 50;//125;
+        //     airfoil_data.n_subdivision_y = 50;//125;
+        //     airfoil_data.airfoil_sampling_factor = 100; 
 
-            dealii::GridGenerator::Airfoil::create_triangulation(*naca0012_mesh, airfoil_data);
+        //     dealii::GridGenerator::Airfoil::create_triangulation(*naca0012_mesh, airfoil_data);
 
-                // Set boundary type and design type
-            for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = naca0012_mesh->begin_active(); cell != naca0012_mesh->end(); ++cell) {
-                for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
-                    if (cell->face(face)->at_boundary()) {
-                        unsigned int current_id = cell->face(face)->boundary_id();
-                        if (current_id == 0 || current_id == 1 || current_id == 4 || current_id == 5) {
-                            cell->face(face)->set_boundary_id (1005); // farfield
-                        } else {
-                            cell->face(face)->set_boundary_id (1001); // wall
-                        }
-                    }
-                }
-            }
+        //         // Set boundary type and design type
+        //     for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = naca0012_mesh->begin_active(); cell != naca0012_mesh->end(); ++cell) {
+        //         for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+        //             if (cell->face(face)->at_boundary()) {
+        //                 unsigned int current_id = cell->face(face)->boundary_id();
+        //                 if (current_id == 0 || current_id == 1 || current_id == 4 || current_id == 5) {
+        //                     cell->face(face)->set_boundary_id (1005); // farfield
+        //                 } else {
+        //                     cell->face(face)->set_boundary_id (1001); // wall
+        //                 }
+        //             }
+        //         }
+        //     }
             // std::cout<<"here"<<std::endl;
-            dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
-            // dg->set_high_order_grid(naca0012_mesh);
+            // dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
+            dg->set_high_order_grid(naca0012_mesh);
             std::cout<<"here2"<<std::endl;
         }
         //if (dim==3) {
@@ -1085,7 +1085,7 @@ int ViscousNACAOptimization<dim,nstate>
 
     LiftDragFunctional<dim,nstate,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
     LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::total_drag );
-    // LiftDragFunctional<dim,nstate,double> pressure_drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
+    // LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
     // LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
     ZMomentFunctional<dim,nstate,double> moment_functional( dg, {0.25, 0.0} );
     GeometricVolume<dim,nstate,double> volume_functional( dg );
@@ -1156,7 +1156,8 @@ int ViscousNACAOptimization<dim,nstate>
 
     ffd.output_ffd_vtu(8999);
 
-    std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
+    // std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
+    std::shared_ptr<FreeFormDeformationParameterization<dim>> design_parameterization = 
                         std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
 
     auto flow_constraints  = ROL::makePtr<FlowConstraints<dim>>(dg,design_parameterization);
@@ -1349,7 +1350,7 @@ int ViscousNACAOptimization<dim,nstate>
             parlist.sublist("General").sublist("Krylov").set("Use Initial Guess", true);
 
             parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
-            parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",3e-1); // Might be needed for p2 BFGS
+            // parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",3e-1); // Might be needed for p2 BFGS
             parlist.sublist("Step").sublist("Line Search").set("Initial Step Size",1e-0);
             parlist.sublist("Step").sublist("Line Search").set("Accept Linesearch Minimizer",true);//false);
             parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type",line_search_method);

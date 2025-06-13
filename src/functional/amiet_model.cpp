@@ -426,6 +426,8 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
 
     if(dIdw.size() != this->dIdw.size()){
         this->pcout << "dIdw.size() and this->dIdw.size() are different..." << std::endl;
+        this->pcout <<  dIdw.size() << std::endl;
+        this->pcout << this->dIdw.size() << std::endl;
     } else{
         for(long unsigned int col=0;col<dIdw.size();++col){
             this->dIdw[col] = dIdw[col];

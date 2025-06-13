@@ -81,7 +81,8 @@ int main (int argc, char * argv[])
     }
 
     // Create design parameterization
-    std::unique_ptr<BaseParameterization<dim>> design_parameterization = 
+    // std::unique_ptr<BaseParameterization<dim>> design_parameterization = 
+    std::shared_ptr<FreeFormDeformationParameterization<dim>> design_parameterization = 
                         std::make_unique<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
 
 

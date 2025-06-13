@@ -19,12 +19,19 @@ public:
         std::shared_ptr<HighOrderGrid<dim,double>> _high_order_grid,
         const FreeFormDeformation<dim> &_ffd,
         std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim);
+
+    /// Destructor
+    // ~FreeFormDeformationParameterization() {};
     
     /// Initializes FFD design variables and set locally owned and ghost indices. Overrides the virtual function in base class.
     void initialize_design_variables(VectorType &ffd_des_var) override;
     
     /// Computes the derivative of volume nodes w.r.t. FFD design parameters. Overrides the virtual function in base class.
     void compute_dXv_dXp(MatrixType &dXv_dXp) const override;
+
+    /// Given an initial point in the undeformed initial parallepiped, return the 
+    /// position of the new point location using the current control point locations.
+    dealii::Point<dim,double> ffd_new_point_location (dealii::Point<dim,double> &initial_point);
     
     /// Checks if the design variables have changed and updates volume nodes based on the parameterization. 
     bool update_mesh_from_design_variables(

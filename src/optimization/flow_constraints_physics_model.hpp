@@ -5,7 +5,8 @@
 
 #include "Ifpack.h"
 #include "ROL_Constraint_SimOpt.hpp"
-#include "design_parameterization/base_parameterization.hpp"
+// #include "design_parameterization/base_parameterization.hpp"
+#include "design_parameterization/ffd_parameterization.hpp"
 #include "dg/dg_base.hpp"
 #include "linear_solver/linear_solver.h"
 #include "parameters/all_parameters.h"
@@ -35,7 +36,8 @@ private:
     std::shared_ptr<DGBase<dim,double>> dg;
 
     /// Parameterization which links design variables to the volume nodes.
-    std::shared_ptr<BaseParameterization<dim>> design_parameterization;
+    // std::shared_ptr<BaseParameterization<dim>> design_parameterization;
+    std::shared_ptr<FreeFormDeformationParameterization<dim>> design_parameterization;
 
     /// Linear solver parameters.
     /** Currently set such that the linear systems are fully solved
@@ -89,7 +91,8 @@ public:
     FlowConstraintsPhysicsModel(
         std::shared_ptr<DGBase<dim,double>> &_sub_dg,
         std::shared_ptr<DGBase<dim,double>> &_dg,
-        std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
+        // std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
+        std::shared_ptr<FreeFormDeformationParameterization<dim>> _design_parameterization,
         std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp = nullptr);
 
     /// Destructor.

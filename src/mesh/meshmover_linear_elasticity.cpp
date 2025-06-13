@@ -289,7 +289,7 @@ namespace MeshMover {
          // for (auto const &value: local_dof_indices) {
          //    std::cout << value << std::endl;
          // }
-         // system_matrix.print(std::cout);system_rhs
+         // system_matrix.print(std::cout);
          // system_matrix_unconstrained.print(std::cout);
          //  cell_matrix.print(std::cout);
          //  system_matrix_unconstrained.add(local_dof_indices, cell_matrix);
@@ -350,7 +350,7 @@ namespace MeshMover {
     void LinearElasticity<dim,real>::solve_timestep()
     {
         assemble_system();
-        apply_dXvdXvs_vector(system_rhs, displacement_solution);
+        apply_dXvdXvs(system_rhs, displacement_solution);
         //const unsigned int n_iterations = solve_linear_problem();
         //pcout << "    Solver converged in " << n_iterations << " iterations." << std::endl;
     }
@@ -358,7 +358,7 @@ namespace MeshMover {
     template <int dim, typename real>
     void
     LinearElasticity<dim,real>
-    ::apply_dXvdXvs_vector(
+    ::apply_dXvdXvs(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector)
     {
@@ -375,6 +375,7 @@ namespace MeshMover {
         assemble_system();
 
         const bool log_history = (this_mpi_process == 0);
+        // dealii::SolverControl solver_control(20000, 1e-14 * input_vector_norm, log_history);
         dealii::SolverControl solver_control(30000, 1e-08 * input_vector_norm, log_history);
         //dealii::SolverControl solver_control(20000, 1e-14, log_history);
         solver_control.log_frequency(100);
@@ -481,7 +482,7 @@ namespace MeshMover {
         dealii::TrilinosWrappers::PreconditionILUT  precondition;
         const unsigned int ilut_fill=50;
         const double ilut_drop=0.0;//1e-15;
-        const double ilut_atol=0.0;//1e-6;
+        const double ilut_atol=0.0;//1e-4;
         const double ilut_rtol=1.0;//1.00001;
         const unsigned int overlap=1;
         dealii::TrilinosWrappers::PreconditionILUT::AdditionalData precond_settings(ilut_drop, ilut_fill, ilut_atol, ilut_rtol, overlap);
@@ -518,6 +519,7 @@ namespace MeshMover {
                 output_vector = 0.0;
             } else {
                 const bool log_history = (this_mpi_process == 0);
+                // dealii::SolverControl solver_control(20000, 1e-14 * input_vector_norm, log_history);
                 dealii::SolverControl solver_control(30000, 1e-08 * input_vector_norm, log_history);
                 //dealii::SolverControl solver_control(20000, 1e-14, log_history);
                 solver_control.log_frequency(100);
@@ -572,8 +574,9 @@ namespace MeshMover {
         assemble_system();
 
         const bool log_history = (this_mpi_process == 0);
-        dealii::SolverControl solver_control(30000, 1e-08 * input_vector_norm, log_history);
+        // dealii::SolverControl solver_control(20000, 1e-14 * input_vector_norm, log_history);
         //dealii::SolverControl solver_control(20000, 1e-14, log_history);
+        dealii::SolverControl solver_control(30000, 1e-08 * input_vector_norm, log_history);
         solver_control.log_frequency(100);
         const int max_n_tmp_vectors=200;
         const bool right_preconditioning=true;
@@ -881,7 +884,6 @@ namespace MeshMover {
     void LinearElasticity<dim,real>::evaluate_dXvdXs()
     {
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> unit_rhs_vector;
-        // dealii::LinearAlgebra::distributed::Vector<double> unit_rhs_vector;
         const unsigned int n_dirichlet_constraints = boundary_displacements_vector.size();
         dXvdXs.clear();
         pcout << "Solving for dXvdXs with " << n_dirichlet_constraints << " surface nodes..." << std::endl;
@@ -902,12 +904,9 @@ namespace MeshMover {
             unit_rhs.update_ghost_values();
 
             unit_rhs_vector.push_back(unit_rhs);
-            // unit_rhs_vector = unit_rhs;
         }
         //dealii::TrilinosWrappers::SparseMatrix dXvdXs_matrix;
-        // dealii::LinearAlgebra::distributed::Vector<double> dXvdXs_matrix;
         apply_dXvdXvs(unit_rhs_vector, dXvdXs_matrix);
-        // return dXvdXs_matrix;
     }
 
     // template <int dim, typename real>

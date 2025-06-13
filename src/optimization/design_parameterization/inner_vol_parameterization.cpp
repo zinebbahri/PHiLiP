@@ -122,6 +122,16 @@ void InnerVolParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) const
     dXv_dXp.compress(dealii::VectorOperation::insert);
 }
 
+// template<int dim>
+// dealii::Point<dim,double> InnerVolParameterization<dim> :: ffd_new_point_location (dealii::Point<dim,double> &initial_point)
+// {
+//     dealii::Point<dim,double> extraction_point = initial_point;
+//     extraction_point[0] = 4000;
+//     extraction_point[1] = 4000;
+//     return extraction_point;
+// }
+
+
 template<int dim>
 bool InnerVolParameterization<dim> ::update_mesh_from_design_variables(
     const MatrixType &dXv_dXp,

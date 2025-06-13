@@ -1,45 +1,78 @@
 #include "rol_to_dealii_vector.hpp"
-#include "rol_objective.hpp"
+#include "rol_objective_acoustic.hpp"
 
 #include <deal.II/optimization/rol/vector_adaptor.h>
 
 #include "global_counter.hpp"
-#include "functional/acoustic_adjoint.hpp"
+#include "functional/extraction_functional.hpp"
+// #include "functional/amiet_model.hpp"
+// #include "functional/acoustic_adjoint.hpp"
 
 namespace PHiLiP {
 
 using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 
 template <int dim, int nstate>
-ROLObjectiveSimOpt<dim,nstate>::ROLObjectiveSimOpt(
-    Functional<dim,nstate,double> &_functional, 
-    std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
+ROLAcousticObjectiveSimOpt<dim,nstate>::ROLAcousticObjectiveSimOpt(
+    std::shared_ptr<DGBase<dim,double,Triangulation>> dg_input,
+    // std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
+    std::shared_ptr<FreeFormDeformationParameterization<dim>> _design_parameterization,
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp)
-    : functional(_functional)
-    , design_parameterization(_design_parameterization)
+    : design_parameterization(_design_parameterization)
+    , dg(dg_input)
 {
-    Assert(functional.dg->high_order_grid == design_parameterization->high_order_grid, 
+    //Finding new location of extraction point
+    dealii::Point<dim,double> initial_extraction_point;
+    if constexpr(dim==2){
+            initial_extraction_point[0] = 0.36;
+            initial_extraction_point[1] = 0.00546019;
+        } else if constexpr(dim==3){
+            initial_extraction_point[0] = 0.36;
+            initial_extraction_point[1] = 0.00546019;
+            initial_extraction_point[2] = 0;
+        }
+
+    this->new_extraction_point = design_parameterization->ffd_new_point_location(initial_extraction_point);
+
+    std::cout << "NEW LOCATION" << this->new_extraction_point[0] << ",,," << this->new_extraction_point[1] << std::endl;
+
+    // this->dg = dg_input;
+
+    int number_of_sampling = 200;
+    dealii::Point<3,double> observer_coord_ref;
+    observer_coord_ref[0] = 0.0;
+    observer_coord_ref[1] = 0.0;
+    observer_coord_ref[2] = 2.0;
+
+    ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, new_extraction_point, number_of_sampling);
+    this->functional = std::make_shared<AmietModelFunctional<dim,nstate,double,Triangulation>>(dg,boundary_layer_extraction,observer_coord_ref);
+
+    // function = acoustic_functional;
+
+
+     Assert(this->dg->high_order_grid == design_parameterization->high_order_grid, 
           dealii::ExcMessage("Functional and DesignParameterization do not point to the same high order grid."));
     design_parameterization->initialize_design_variables(design_var);
     const unsigned int n_design_variables = design_parameterization->get_number_of_design_variables();
     
     if (precomputed_dXvdXp) {
-        if (precomputed_dXvdXp->m() == functional.dg->high_order_grid->volume_nodes.size() && precomputed_dXvdXp->n() == n_design_variables) {
+        if (precomputed_dXvdXp->m() == this->dg->high_order_grid->volume_nodes.size() && precomputed_dXvdXp->n() == n_design_variables) {
             dXvdXp.copy_from(*precomputed_dXvdXp);
         }
     } else {
         design_parameterization->compute_dXv_dXp(dXvdXp);
     }
+
 }
 
 
 template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::update(
+void ROLAcousticObjectiveSimOpt<dim,nstate>::update(
     const ROL::Vector<double> &des_var_sim,
     const ROL::Vector<double> &des_var_ctl,
     bool /*flag*/, int /*iter*/)
 {
-    functional.set_state(ROL_vector_to_dealii_vector_reference(des_var_sim));
+    this->functional->set_state(ROL_vector_to_dealii_vector_reference(des_var_sim));
 
     design_var =  ROL_vector_to_dealii_vector_reference(des_var_ctl);
     design_parameterization->update_mesh_from_design_variables(dXvdXp, design_var);
@@ -47,7 +80,7 @@ void ROLObjectiveSimOpt<dim,nstate>::update(
 
 
 template <int dim, int nstate>
-double ROLObjectiveSimOpt<dim,nstate>::value(
+double ROLAcousticObjectiveSimOpt<dim,nstate>::value(
     const ROL::Vector<double> &des_var_sim,
     const ROL::Vector<double> &des_var_ctl,
     double &tol )
@@ -59,16 +92,16 @@ double ROLObjectiveSimOpt<dim,nstate>::value(
     if (tol > 1e-5 || std::isnan(tol)) return 1e200;
     update(des_var_sim, des_var_ctl);
 
-    const bool compute_dIdW = false;
+    const bool compute_dIdW = true;
     const bool compute_dIdX = false;
     const bool compute_d2I = false;
-    return functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+    return this->functional->evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
 
 
 }
 
 template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::gradient_1(
+void ROLAcousticObjectiveSimOpt<dim,nstate>::gradient_1(
     ROL::Vector<double> &gradient_sim,
     const ROL::Vector<double> &des_var_sim,
     const ROL::Vector<double> &des_var_ctl,
@@ -79,13 +112,13 @@ void ROLObjectiveSimOpt<dim,nstate>::gradient_1(
     const bool compute_dIdW = true;
     const bool compute_dIdX = false;
     const bool compute_d2I = false;
-    functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+    this->functional->evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
     auto &dIdW = ROL_vector_to_dealii_vector_reference(gradient_sim);
-    dIdW = functional.dIdw;
+    dIdW = this->functional->dIdw;
 }
 
 template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::gradient_2(
+void ROLAcousticObjectiveSimOpt<dim,nstate>::gradient_2(
     ROL::Vector<double> &gradient_ctl,
     const ROL::Vector<double> &des_var_sim,
     const ROL::Vector<double> &des_var_ctl,
@@ -95,13 +128,14 @@ void ROLObjectiveSimOpt<dim,nstate>::gradient_2(
     update(des_var_sim, des_var_ctl);
 
     // pointer to functional
-    std::shared_ptr< Functional<dim,nstate,double> > functional_ptr =  std::make_shared<Functional<dim,nstate,double>>(functional);
+    // std::shared_ptr< Functional<dim,nstate,double> > functional_ptr =  std::make_shared<Functional<dim,nstate,double>>(this->functional);
     // Create acoustic adjoint object using Amiet functional
-    AcousticAdjoint <dim,nstate,double,Triangulation> acoustic_adjoint(functional.dg,functional_ptr);
+    this->acoustic_adjoint = std::make_shared<AcousticAdjoint <dim,nstate,double,Triangulation>>(this->dg,this->functional);
+    // std::shared_ptr<AmietModelFunctional<dim,nstate,double,Triangulation>> amiet_test = std::make_shared<AmietModelFunctional<dim,nstate,double,Triangulation>>(dg,boundary_layer_extraction,observer_coord_ref);
 
-    acoustic_adjoint.compute_dIdXd(functional.dg->high_order_grid);
+    this->acoustic_adjoint->compute_dIdXd(this->dg->high_order_grid);
     auto &dIdXp = ROL_vector_to_dealii_vector_reference(gradient_ctl);
-    dIdXp = acoustic_adjoint.dIdXd;
+    dIdXp = this->acoustic_adjoint->dIdXd;
 
     // const bool compute_dIdW = false, compute_dIdX = true, compute_d2I = false;
     // functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
@@ -137,7 +171,7 @@ void ROLObjectiveSimOpt<dim,nstate>::gradient_2(
 }
 
 template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::hessVec_11(
+void ROLAcousticObjectiveSimOpt<dim,nstate>::hessVec_11(
     ROL::Vector<double> &output_vector,
     const ROL::Vector<double> &input_vector,
     const ROL::Vector<double> &des_var_sim,
@@ -146,21 +180,21 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_11(
 {
     update(des_var_sim, des_var_ctl);
 
-    const bool compute_dIdW = false;
+    const bool compute_dIdW = true;
     const bool compute_dIdX = false;
     const bool compute_d2I = true;
-    functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+    this->functional->evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
 
     const auto &dealii_input = ROL_vector_to_dealii_vector_reference(input_vector);
     auto &hv = ROL_vector_to_dealii_vector_reference(output_vector);
 
-    functional.d2IdWdW->vmult(hv, dealii_input);
+    this->functional->d2IdWdW->vmult(hv, dealii_input);
 
     //n_vmult += 1;
 }
 
 template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::hessVec_12(
+void ROLAcousticObjectiveSimOpt<dim,nstate>::hessVec_12(
     ROL::Vector<double> &output_vector,
     const ROL::Vector<double> &input_vector,
     const ROL::Vector<double> &des_var_sim,
@@ -197,14 +231,14 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_12(
     //     functional.d2IdWdX.vmult(d2IdWdXp_input, dXvdXp_input);
     // }
 
-    auto dXvdXp_input = functional.dg->high_order_grid->volume_nodes;
+    auto dXvdXp_input = this->dg->high_order_grid->volume_nodes;
     dXvdXp.vmult(dXvdXp_input, dealii_input);
 
     auto &dealii_output = ROL_vector_to_dealii_vector_reference(output_vector);
     {
-        const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
-        functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
-        functional.d2IdWdX->vmult(dealii_output, dXvdXp_input);
+        const bool compute_dIdW = true, compute_dIdX = false, compute_d2I = true;
+        this->functional->evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+        this->functional->d2IdWdX->vmult(dealii_output, dXvdXp_input);
     }
 
     //n_vmult += 2;
@@ -212,7 +246,7 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_12(
 }
 
 template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::hessVec_21(
+void ROLAcousticObjectiveSimOpt<dim,nstate>::hessVec_21(
     ROL::Vector<double> &output_vector,
     const ROL::Vector<double> &input_vector,
     const ROL::Vector<double> &des_var_sim,
@@ -221,15 +255,15 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_21(
 {
     update(des_var_sim, des_var_ctl);
 
-    const bool compute_dIdW = false;
+    const bool compute_dIdW = true;
     const bool compute_dIdX = false;
     const bool compute_d2I = true;
-    functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+    this->functional->evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
 
     const auto &dealii_input = ROL_vector_to_dealii_vector_reference(input_vector);
 
-    auto d2IdXdW_input = functional.dg->high_order_grid->volume_nodes;
-    functional.d2IdWdX->Tvmult(d2IdXdW_input, dealii_input);
+    auto d2IdXdW_input = this->dg->high_order_grid->volume_nodes;
+    this->functional->d2IdWdX->Tvmult(d2IdXdW_input, dealii_input);
 
     // auto d2IdXvsdW_input = functional.dg->high_order_grid->volume_nodes;
     // {
@@ -257,7 +291,7 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_21(
 }
 
 template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::hessVec_22(
+void ROLAcousticObjectiveSimOpt<dim,nstate>::hessVec_22(
     ROL::Vector<double> &output_vector,
     const ROL::Vector<double> &input_vector,
     const ROL::Vector<double> &des_var_sim,
@@ -289,14 +323,14 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_22(
     //     meshmover.apply_dXvdXvs(dXvsdXp_input, dXvdXp_input);
     // }
 
-    auto dXvdXp_input = functional.dg->high_order_grid->volume_nodes;
+    auto dXvdXp_input = this->dg->high_order_grid->volume_nodes;
     dXvdXp.vmult(dXvdXp_input, dealii_input);
 
-    auto d2IdXdXp_input = functional.dg->high_order_grid->volume_nodes;
+    auto d2IdXdXp_input = this->dg->high_order_grid->volume_nodes;
     {
-        const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
-        functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
-        functional.d2IdXdX->vmult(d2IdXdXp_input, dXvdXp_input);
+        const bool compute_dIdW = true, compute_dIdX = false, compute_d2I = true;
+        this->functional->evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+        this->functional->d2IdXdX->vmult(d2IdXdXp_input, dXvdXp_input);
     }
 
     //auto d2IdXvsdXp_input = functional.dg->high_order_grid->volume_nodes;
@@ -322,10 +356,10 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_22(
     //n_vmult += 3;
 }
 
-template class ROLObjectiveSimOpt <PHILIP_DIM,1>;
-template class ROLObjectiveSimOpt <PHILIP_DIM,2>;
-template class ROLObjectiveSimOpt <PHILIP_DIM,3>;
-template class ROLObjectiveSimOpt <PHILIP_DIM,4>;
-template class ROLObjectiveSimOpt <PHILIP_DIM,5>;
+// template class ROLAcousticObjectiveSimOpt <PHILIP_DIM,1>;
+// template class ROLAcousticObjectiveSimOpt <PHILIP_DIM,2>;
+// template class ROLAcousticObjectiveSimOpt <PHILIP_DIM,3>;
+template class ROLAcousticObjectiveSimOpt <PHILIP_DIM,4>;
+template class ROLAcousticObjectiveSimOpt <PHILIP_DIM,5>;
 
 } // PHiLiP namespace

@@ -16,7 +16,8 @@ namespace PHiLiP {
 template<int dim>
 FlowConstraints<dim>
 ::FlowConstraints(std::shared_ptr<DGBase<dim,double>> &_dg, 
-                  std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
+                //   std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
+                std::shared_ptr<FreeFormDeformationParameterization<dim>> _design_parameterization,
                   std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp)
     : mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
     , i_print(mpi_rank==0)
@@ -49,11 +50,11 @@ FlowConstraints<dim>
     this->linear_solver_param.linear_residual = 1e-17;
     //this->linear_solver_param.ilut_fill = 1.0;//2; 50
     this->linear_solver_param.ilut_fill = 50;
-    this->linear_solver_param.ilut_drop = 1e-8;
+    this->linear_solver_param.ilut_drop = 0.0;//1e-8;
     //this->linear_solver_param.ilut_atol = 1e-3;
     //this->linear_solver_param.ilut_rtol = 1.0+1e-2;
-    this->linear_solver_param.ilut_atol = 1e-5;
-    this->linear_solver_param.ilut_rtol = 1.0+1e-2;
+    this->linear_solver_param.ilut_atol = 1e-4;//1e-5;
+    this->linear_solver_param.ilut_rtol = 1.0+1e-3;//1.0+1e-2;
     this->linear_solver_param.linear_solver_output = Parameters::OutputEnum::verbose;
     this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
     //this->linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
@@ -260,14 +261,15 @@ int FlowConstraints<dim>
 
     Teuchos::ParameterList List;
 
+    //Changing solver to ILU, Zineb on June 12, 2025 (changed back to ILUT on Jun 13)
     const std::string PrecType = "ILUT"; 
     List.set("fact: ilut level-of-fill", 50.0);
     List.set("fact: absolute threshold", 1e-3);
     List.set("fact: relative threshold", 1.01);//1.0+1e-2);
     List.set("fact: drop tolerance", 0.0);//1e-12);
 
-    //const std::string PrecType = "ILU"; 
-    //List.set("fact: level-of-fill", 0);
+    // const std::string PrecType = "ILU"; 
+    // List.set("fact: level-of-fill", /*0*/1);
 
     List.set("schwarz: reordering type", "rcm");
     const int OverlapLevel = 1; // one row of overlap among the processes
@@ -304,14 +306,15 @@ int FlowConstraints<dim>
 
     Teuchos::ParameterList List;
 
+    //Changing solver to ILU, Zineb on June 12, 2025 (changed back to ILUT on Jun 13)
     const std::string PrecType = "ILUT"; 
     List.set("fact: ilut level-of-fill", 50.0);
     List.set("fact: absolute threshold", 1e-3);
     List.set("fact: relative threshold", 1.01);//1.0+1e-2);
     List.set("fact: drop tolerance", 0.0);//1e-12);
 
-    //const std::string PrecType = "ILU"; 
-    //List.set("fact: level-of-fill", 0);
+    // const std::string PrecType = "ILU"; 
+    // List.set("fact: level-of-fill", /*0*/1);
 
     List.set("schwarz: reordering type", "rcm");
     const int OverlapLevel = 1; // one row of overlap among the processes

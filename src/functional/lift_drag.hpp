@@ -37,7 +37,7 @@ private:
     const Functional_types functional_type;
 
     // /// @brief Casts DG's physics into an Euler physics reference.
-    // const Physics::Euler<dim,dim+2,FadFadType> &euler_fad_fad;
+    const Physics::Euler<dim,dim+2,FadFadType> &euler_fad_fad;
 
 /// @brief Casts DG's physics into an physics rans reference.
     // const Physics::NavierStokes<dim,dim+2,FadFadType> &NS_fad_fad;
@@ -73,10 +73,10 @@ private:
     /// Compute force dimensionalization factor.
     double initialize_force_dimensionalization_factor()
     {
-        // const double ref_length  = euler_fad_fad.ref_length;
-        const double ref_length  = 1.0;
-        // const double dynamic_pressure_inf  = euler_fad_fad.dynamic_pressure_inf;
-        const double dynamic_pressure_inf  = 0.5;
+        const double ref_length  = euler_fad_fad.ref_length;
+        // const double ref_length  = 1.0;
+        const double dynamic_pressure_inf  = euler_fad_fad.dynamic_pressure_inf;
+        // const double dynamic_pressure_inf  = 0.5;
 
         return 1.0 / (ref_length * dynamic_pressure_inf);
     }
@@ -160,7 +160,7 @@ public:
         : Functional<dim,nstate,real>(dg_input)
         , functional_type(functional_type)
         // , NS_fad_fad(dynamic_cast< Physics::NavierStokes<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
-        // , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
+        , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
         // , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadType> &>((PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler))))
         // , euler_fad_fad(std::dynamic_pointer_cast< Physics::Euler<dim,dim+2,FadType> >(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler)))
         , angle_of_attack(0.0)
@@ -233,7 +233,7 @@ public:
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const
         // const std::array<dealii::Tensor<1,dim,real2>,dim+2> &soln_grad_at_q) const
     {
-        if (functional_type == Functional_types::/*drag*/ total_drag || functional_type == Functional_types::lift) {
+        if (functional_type == Functional_types::/*drag*/ total_drag /*|| functional_type == Functional_types::lift*/) {
 
             if (boundary_id == 1001) {
                 std::array<real2,dim+2> soln_at_q_;
@@ -285,15 +285,19 @@ public:
                 }
     
             assert(soln_at_q_.size() == dim+2);
-            // const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
+            using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+                // std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::PhysicsFactory<dim,dim+2,real2>::create_Physics(this->all_parameters, PDE_enum::navier_stokes, nullptr));
+
+                // Compute pressure (same as Euler physics)
+                // const real2 pressure = navier_stokes_physics->compute_pressure (soln_at_q_);
+            const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
             // const Physics::Euler<dim,dim+2,real2> &euler = (dynamic_cast< const Physics::Euler<dim,dim+2,real2> >(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(this->dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler)));
 
             // const Physics::Euler<dim,dim+2,real2> &euler = std::dynamic_pointer_cast< Physics::Euler<dim,dim+2,FadType> &>(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(this->dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler));
 
-            // real2 pressure = euler.compute_pressure (soln_at_q_);
+            real2 pressure = euler.compute_pressure (soln_at_q_);
 
-            // return force_dimensionalization_factor * pressure * (normal * force_vector);
-            return 0;
+            return force_dimensionalization_factor * pressure * (normal * force_vector);
                    } 
         }
         return (real2) 0.0;
