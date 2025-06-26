@@ -71,18 +71,41 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_adjoint()
 
     this->adjoint.compress(dealii::VectorOperation::add);
     this->adjoint.update_ghost_values();
+
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real, typename MeshType>
 void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXv()
-{
+{   
+    std::cout << "Here" << std::endl;
     this->dg->assemble_residual(false,true,false);
-
+std::cout << "Here2" << std::endl;
     this->dIdXv = this->functional->dIdX;
+std::cout << "Here3" << std::endl;
+
+    std::ofstream outfile_adjoint;
+    outfile_adjoint.open("acoustic_adjoint.dat");  
+    this->adjoint.print(outfile_adjoint);
+    outfile_adjoint.close();
+std::cout << "adjoint printed" << std::endl;
+
+    std::ofstream outfile_dIdX;
+    outfile_dIdX.open("dIdX.dat");  
+    this->dIdXv.print(outfile_dIdX);
+    outfile_dIdX.close();
+std::cout << "dIdX printed" << std::endl;
+
+    std::ofstream outfile_dRdX;
+    outfile_dRdX.open("dRdX.dat");  
+    this->dg->dRdXv.print(outfile_dRdX);
+    outfile_dRdX.close();
+std::cout << "dg->dRdXv printed" << std::endl;
 
     this->dg->dRdXv.Tvmult(this->dIdXv,this->adjoint);
 
+std::cout << "Here4" << std::endl;
     this->dIdXv.compress(dealii::VectorOperation::add);
+    std::cout << "Here5" << std::endl;
     this->dIdXv.update_ghost_values();
 }
 //----------------------------------------------------------------
@@ -196,6 +219,12 @@ template <int dim, int nstate, typename real, typename MeshType>
 void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXd(std::shared_ptr<HighOrderGrid<dim,real>> high_order_grid){
     
     using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
+
+    //Computing acoustic adjoint
+    this->pcout << "Solving adjoint linear system..." << std::endl;
+    this->compute_adjoint();
+    this->pcout << "Adjoint linear system is solved..." << std::endl;
+
     // computing dXv_dXs
     VectorType surface_node_displacements = high_order_grid->surface_nodes;
     this->dIdXs.reinit(high_order_grid->surface_nodes);
@@ -203,12 +232,15 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXd(std::shared_ptr
     meshmover.evaluate_dXvdXs();    
     this->pcout << "dXvdXs computed" << std::endl;
     // Writing dXv_dXs to file
-    std::ofstream outfile_dXv_dXs;
-    outfile_dXv_dXs.open("dXv_dXs.dat");  
-    meshmover.dXvdXs_matrix.print(outfile_dXv_dXs);
-    outfile_dXv_dXs.close();
+    // std::ofstream outfile_dXv_dXs;
+    // outfile_dXv_dXs.open("dXv_dXs.dat");  
+    // meshmover.dXvdXs_matrix.print(outfile_dXv_dXs);
+    // outfile_dXv_dXs.close();
 
     // Writing dI_dXv to file
+    this->pcout << "Computing functional derivative wrt volume nodes..." << std::endl;
+    this->compute_dIdXv();
+    this->pcout << "Computation is done..." << std::endl;
     std::ofstream outfile_dI_dXv;
     outfile_dI_dXv.open("dI_dXv.dat");  
     this->dIdXv.print(outfile_dI_dXv);

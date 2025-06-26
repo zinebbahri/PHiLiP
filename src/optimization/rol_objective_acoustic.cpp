@@ -21,34 +21,29 @@ ROLAcousticObjectiveSimOpt<dim,nstate>::ROLAcousticObjectiveSimOpt(
     : design_parameterization(_design_parameterization)
     , dg(dg_input)
 {
-    //Finding new location of extraction point
+    //Initial location of extraction point
     dealii::Point<dim,double> initial_extraction_point;
     if constexpr(dim==2){
-            initial_extraction_point[0] = 0.36;
-            initial_extraction_point[1] = 0.00546019;
+            initial_extraction_point[0] = dg->all_parameters->boundary_layer_extraction_param.extraction_point_x;
+            initial_extraction_point[1] = dg->all_parameters->boundary_layer_extraction_param.extraction_point_y;
         } else if constexpr(dim==3){
-            initial_extraction_point[0] = 0.36;
-            initial_extraction_point[1] = 0.00546019;
+            initial_extraction_point[0] = dg->all_parameters->boundary_layer_extraction_param.extraction_point_x;
+            initial_extraction_point[1] = dg->all_parameters->boundary_layer_extraction_param.extraction_point_y;
             initial_extraction_point[2] = 0;
         }
 
-    this->new_extraction_point = design_parameterization->ffd_new_point_location(initial_extraction_point);
-
-    std::cout << "NEW LOCATION" << this->new_extraction_point[0] << ",,," << this->new_extraction_point[1] << std::endl;
+    std::cout << "Initial Location " << initial_extraction_point[0] << ",,," << initial_extraction_point[1] << std::endl;
 
     // this->dg = dg_input;
 
-    int number_of_sampling = 200;
+    int number_of_sampling = this->dg->all_parameters->boundary_layer_extraction_param.number_of_sampling;
     dealii::Point<3,double> observer_coord_ref;
-    observer_coord_ref[0] = 0.0;
-    observer_coord_ref[1] = 0.0;
-    observer_coord_ref[2] = 2.0;
+    observer_coord_ref[0] = dg->all_parameters->amiet_param.observer_coord_ref_x;
+    observer_coord_ref[1] = dg->all_parameters->amiet_param.observer_coord_ref_y;
+    observer_coord_ref[2] = dg->all_parameters->amiet_param.observer_coord_ref_z;
 
-    ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, new_extraction_point, number_of_sampling);
+    ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, initial_extraction_point, number_of_sampling);
     this->functional = std::make_shared<AmietModelFunctional<dim,nstate,double,Triangulation>>(dg,boundary_layer_extraction,observer_coord_ref);
-
-    // function = acoustic_functional;
-
 
      Assert(this->dg->high_order_grid == design_parameterization->high_order_grid, 
           dealii::ExcMessage("Functional and DesignParameterization do not point to the same high order grid."));
@@ -76,6 +71,35 @@ void ROLAcousticObjectiveSimOpt<dim,nstate>::update(
 
     design_var =  ROL_vector_to_dealii_vector_reference(des_var_ctl);
     design_parameterization->update_mesh_from_design_variables(dXvdXp, design_var);
+
+     //Update location of extraction point
+    dealii::Point<dim,double> initial_extraction_point;
+    if constexpr(dim==2){
+            initial_extraction_point[0] = dg->all_parameters->boundary_layer_extraction_param.extraction_point_x;
+            initial_extraction_point[1] = dg->all_parameters->boundary_layer_extraction_param.extraction_point_y;
+        } else if constexpr(dim==3){
+            initial_extraction_point[0] = dg->all_parameters->boundary_layer_extraction_param.extraction_point_x;
+            initial_extraction_point[1] = dg->all_parameters->boundary_layer_extraction_param.extraction_point_y;
+            initial_extraction_point[2] = 0;
+        }
+
+    this->new_extraction_point = design_parameterization->ffd_new_point_location(initial_extraction_point);
+
+    std::cout << "NEW LOCATION " << this->new_extraction_point[0] << ",,," << this->new_extraction_point[1] << std::endl;
+
+    // this->dg = dg_input;
+
+    int number_of_sampling = this->dg->all_parameters->boundary_layer_extraction_param.number_of_sampling;
+    dealii::Point<3,double> observer_coord_ref;
+    observer_coord_ref[0] = dg->all_parameters->amiet_param.observer_coord_ref_x;
+    observer_coord_ref[1] = dg->all_parameters->amiet_param.observer_coord_ref_y;
+    observer_coord_ref[2] = dg->all_parameters->amiet_param.observer_coord_ref_z;
+
+    ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, new_extraction_point, number_of_sampling);
+    this->functional->boundary_layer_extraction = std::make_shared<ExtractionFunctional<dim,nstate,double,Triangulation>> (boundary_layer_extraction);
+    // this->functional->evaluate_functional(true,true,false);
+
+    // function = acoustic_functional;
 }
 
 
@@ -129,6 +153,8 @@ void ROLAcousticObjectiveSimOpt<dim,nstate>::gradient_2(
 
     // pointer to functional
     // std::shared_ptr< Functional<dim,nstate,double> > functional_ptr =  std::make_shared<Functional<dim,nstate,double>>(this->functional);
+
+    this->functional->evaluate_functional(true,true,false);
     // Create acoustic adjoint object using Amiet functional
     this->acoustic_adjoint = std::make_shared<AcousticAdjoint <dim,nstate,double,Triangulation>>(this->dg,this->functional);
     // std::shared_ptr<AmietModelFunctional<dim,nstate,double,Triangulation>> amiet_test = std::make_shared<AmietModelFunctional<dim,nstate,double,Triangulation>>(dg,boundary_layer_extraction,observer_coord_ref);

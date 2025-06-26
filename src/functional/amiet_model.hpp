@@ -38,9 +38,6 @@ private:
     /// @brief Imaginary unit i of complex number
     std::complex<real> imag_unit;
 
-    /// @brief ExtractionFunctional Object provides all necessary boundary parameters
-    const ExtractionFunctional<dim,nstate,real,MeshType> boundary_layer_extraction;
-
     /// @brief Lower limit of investigated frequency (rad/s).
     const real omega_min;
     /// @brief Upper limit of investigated frequency (rad/s).
@@ -105,6 +102,9 @@ public:
         const dealii::Point<3,real> & observer_coord_ref_input);
     /// Destructor
     ~AmietModelFunctional(){};
+
+    /// @brief ExtractionFunctional Object provides all necessary boundary parameters
+    std::shared_ptr<ExtractionFunctional<dim,nstate,real,MeshType>> boundary_layer_extraction;
 
     real evaluate_functional(
         const bool compute_dIdW = false, 

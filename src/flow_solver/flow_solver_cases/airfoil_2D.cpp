@@ -159,13 +159,13 @@ void Airfoil2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<d
 
         AcousticAdjoint <dim,nstate,double,Triangulation> amiet_adjoint(dg,amiet_acoustic_response);
 
-        this->pcout << "Solving adjoint linear system..." << std::endl;
-        amiet_adjoint.compute_adjoint();
-        this->pcout << "Adjoint linear system is solved..." << std::endl;
+        // this->pcout << "Solving adjoint linear system..." << std::endl;
+        // amiet_adjoint.compute_adjoint();
+        // this->pcout << "Adjoint linear system is solved..." << std::endl;
 
-        this->pcout << "Computing functional derivative wrt volume nodes..." << std::endl;
-        amiet_adjoint.compute_dIdXv();
-        this->pcout << "Computation is done..." << std::endl;
+        // this->pcout << "Computing functional derivative wrt volume nodes..." << std::endl;
+        // amiet_adjoint.compute_dIdXv();
+        // this->pcout << "Computation is done..." << std::endl;
         
         // this->pcout << "Computing volume nodes derivative wrt surface nodes..." << std::endl;
         // amiet_adjoint.compute_dXvdXs(dg->high_order_grid);

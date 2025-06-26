@@ -188,6 +188,7 @@ public:
             //this->pcout << "Lift value: " << value << "\n";
             //std::cout << "Lift value: " << value << std::cout;
             //std::cout << "Lift value: " << value << std::cout;
+            print_lift(value);
         }
         if (functional_type == Functional_types::pressure_drag) {
             //this->pcout << "Drag value: " << value << "\n";
@@ -217,6 +218,13 @@ public:
         std::ofstream total_drag_file;
         total_drag_file.open("total_drag.dat", std::ios::app);
         total_drag_file << value << "\n";
+    }
+
+        void print_lift (real value)
+    {
+        std::ofstream outfile_lift;
+        outfile_lift.open("lift.dat", std::ios::app);
+        outfile_lift << value << "\n";
     }
 
 public:
@@ -286,16 +294,17 @@ public:
     
             assert(soln_at_q_.size() == dim+2);
             using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-                // std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::PhysicsFactory<dim,dim+2,real2>::create_Physics(this->all_parameters, PDE_enum::navier_stokes, nullptr));
+                std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::PhysicsFactory<dim,dim+2,real2>::create_Physics(this->all_parameters, PDE_enum::navier_stokes, nullptr));
 
                 // Compute pressure (same as Euler physics)
-                // const real2 pressure = navier_stokes_physics->compute_pressure (soln_at_q_);
-            const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
+                const real2 pressure = navier_stokes_physics->compute_pressure (soln_at_q_);
+
+            // const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
             // const Physics::Euler<dim,dim+2,real2> &euler = (dynamic_cast< const Physics::Euler<dim,dim+2,real2> >(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(this->dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler)));
 
             // const Physics::Euler<dim,dim+2,real2> &euler = std::dynamic_pointer_cast< Physics::Euler<dim,dim+2,FadType> &>(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(this->dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler));
 
-            real2 pressure = euler.compute_pressure (soln_at_q_);
+            // real2 pressure = euler.compute_pressure (soln_at_q_);
 
             return force_dimensionalization_factor * pressure * (normal * force_vector);
                    } 

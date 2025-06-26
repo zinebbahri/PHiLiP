@@ -40,7 +40,7 @@
 
 #include "optimization/rol_to_dealii_vector.hpp"
 #include "optimization/flow_constraints.hpp"
-// #include "optimization/rol_objective_acoustic.hpp"
+#include "optimization/rol_objective_acoustic.hpp"
 #include "optimization/rol_objective.hpp"
 #include "optimization/constraintfromobjective_simopt.hpp"
 
@@ -69,7 +69,7 @@
 //#define REMOVE_BOUND
 
 namespace {
-const bool USE_LIFT_CONSTRAINT   = true;
+const bool USE_LIFT_CONSTRAINT   = false;//true;
 const bool USE_MOMENT_CONSTRAINT = false;
 const bool USE_VOLUME_CONSTRAINT = true;
 const bool USE_DESIGN_CONSTRAINT = true;
@@ -706,6 +706,7 @@ int ViscousNACAOptimization<dim,nstate>
 ::run_test () const
 {
     int test_error = 0;
+    int design_space = 0;
     std::filebuf filebuffer;
     if (this->mpi_rank == 2) filebuffer.open ("optimization.log", std::ios::out);
     if (this->mpi_rank == 0) filebuffer.close();
@@ -713,10 +714,311 @@ int ViscousNACAOptimization<dim,nstate>
     for (unsigned int poly_degree = POLY_START; poly_degree <= POLY_END; ++poly_degree) {
         for (const unsigned int n_des_var : n_des_var_list) {
             const unsigned int nx_ffd = n_des_var + 2;
+            if (design_space == 0)
             test_error += optimize(nx_ffd, poly_degree);
+            else
+            OASPL_design_space(nx_ffd);
         }
     }
     return test_error;
+}
+template<int dim, int nstate>
+void ViscousNACAOptimization<dim,nstate>
+::OASPL_design_space (const unsigned int nx_ffd) const
+{
+    using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
+    using VectorAdaptor = dealii::Rol::VectorAdaptor<DealiiVector>;
+    using ManParam = Parameters::ManufacturedConvergenceStudyParam;
+    using GridEnum = ManParam::GridEnum;
+    using MatrixType = dealii::TrilinosWrappers::SparseMatrix;
+    Parameters::AllParameters param = *(TestsBase::all_parameters);
+
+    Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
+    Assert(param.pde_type == param.PartialDifferentialEquation::navier_stokes, dealii::ExcNotImplemented());
+
+    ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
+
+    n_vmult = 0;
+    dRdW_form = 0;
+    dRdW_mult = 0;
+    dRdX_mult = 0;
+    d2R_mult = 0;
+
+        Physics::Euler<dim,nstate,double> euler_physics_double
+            = Physics::Euler<dim, nstate, double>(
+                    &param,
+                    param.euler_param.ref_length,
+                    param.euler_param.gamma_gas,
+                    param.euler_param.mach_inf,
+                    param.euler_param.angle_of_attack,
+                    param.euler_param.side_slip_angle);
+            FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+
+        using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
+        std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (
+            this->mpi_communicator,
+            typename dealii::Triangulation<dim>::MeshSmoothing(
+                dealii::Triangulation<dim>::smoothing_on_refinement |
+                dealii::Triangulation<dim>::smoothing_on_coarsening));
+
+
+        unsigned int n_design_variables = 0;
+        dealii::Point<dim> ffd_origin;
+        std::array<double,dim> ffd_rectangle_lengths;
+        std::array<unsigned int,dim> ffd_ndim_control_pts;
+        std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim;
+        if constexpr (dim == 2) {
+        if (grid_type == GridType::cylinder) {
+            ffd_origin = dealii::Point<dim> (-0.60,-0.51);
+            ffd_rectangle_lengths = std::array<double,dim> {{1.0+0.2,1.0+0.02}};
+        } else if (grid_type == GridType::naca0012) {
+            ffd_origin = dealii::Point<dim> (0.0,-0.061);
+            ffd_rectangle_lengths = std::array<double,dim> {{0.999,0.122}};
+            //    ffd_origin = dealii::Point<dim> (-0.1,-0.1);
+            //    ffd_rectangle_lengths = std::array<double,dim> {{0.6,0.2}};
+                //ffd_rectangle_lengths = std::array<double,dim> {{1.0,0.122}};
+            }
+
+            ffd_ndim_control_pts = {{nx_ffd,3}};
+
+        }
+        FreeFormDeformation<dim> ffd( ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
+        if constexpr (dim == 2) {
+            // Vector of ijk indices and dimension.
+            // Each entry in the vector points to a design variable's ijk ctl point and its acting dimension.
+            for (unsigned int i_ctl = 0; i_ctl < ffd.n_control_pts; ++i_ctl) {
+
+                const std::array<unsigned int,dim> ijk = ffd.global_to_grid ( i_ctl );
+                for (unsigned int d_ffd = 0; d_ffd < dim; ++d_ffd) {
+
+                    if (   ijk[0] == 0 // Constrain first column of FFD points.
+                        || ijk[0] == ffd_ndim_control_pts[0] - 1  // Constrain last column of FFD points.
+                        || ijk[1] == 1 // Constrain middle row of FFD points.
+                        || d_ffd == 0 // Constrain x-direction of FFD points.
+                    ) {
+                        continue;
+                    }
+                    ++n_design_variables;
+                    ffd_design_variables_indices_dim.push_back(std::make_pair(i_ctl, d_ffd));
+                }
+            }
+        }
+
+        const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD, n_design_variables);
+        dealii::IndexSet ghost_row_part(n_design_variables);
+        ghost_row_part.add_range(0,n_design_variables);
+        DealiiVector ffd_design_variables(row_part,ghost_row_part,MPI_COMM_WORLD);
+
+        ffd.get_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+        ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+
+        const auto initial_design_variables = ffd_design_variables;
+
+        ffd_design_variables = initial_design_variables;
+        ffd_design_variables.update_ghost_values();
+        ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+
+        // Initial optimization point
+        grid->clear();
+        dealii::GridGenerator::hyper_cube(*grid);
+
+        if constexpr (dim == 2) {
+        if (grid_type == GridType::cylinder) {
+            //int n_cells_circle = 45;
+            //int n_cells_radial = 45;
+            //PHiLiP::Grids::cylinder(*grid, n_cells_circle, n_cells_radial);
+
+            const dealii::Point<dim> center(0.0,0.0);
+            const double        inner_radius = 0.5;
+            const double        outer_radius = 40;
+            const unsigned int  n_shells = 40;
+            const double        skewness = 3.0;
+            const unsigned int  n_cells_per_shell = 40;
+            const bool          colorize = true;
+            dealii::GridGenerator::concentric_hyper_shells(*grid, center, inner_radius, outer_radius, n_shells, skewness, n_cells_per_shell, colorize);
+
+            grid->set_all_manifold_ids(0);
+            grid->set_manifold(0, dealii::SphericalManifold<2>(center));
+
+            // Assign BC
+            for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
+                //if (!cell->is_locally_owned()) continue;
+                for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+                    if (cell->face(face)->at_boundary()) {
+                        unsigned int current_id = cell->face(face)->boundary_id();
+                        if (current_id == 0) {
+                            cell->face(face)->set_boundary_id (1001); // Wall
+                        } else if (current_id == 1) {
+                            cell->face(face)->set_boundary_id (1004); // Farfield
+                        } else {
+                            std::abort();
+                        }
+                    }
+                }
+            }
+
+            }
+            }
+
+            // Exploring the design spaces of the OASPL reduction by deforming the NACA0012 mesh and computing the acoustic signature
+            DealiiVector target_solution_ffd;
+        
+            std::ofstream outfile_init_FFD_coords;
+            outfile_init_FFD_coords.open("FFD_init_coordinates.dat");
+            std::ofstream outfile_final_FFD_coords;
+            outfile_final_FFD_coords.open("FFD_final_coordinates.dat");
+            for (unsigned int i_ctl = 0; i_ctl < ffd.n_control_pts; ++i_ctl) {
+
+                const std::array<unsigned int,dim> ijk = ffd.global_to_grid ( i_ctl );
+                if (   ijk[0] == 0 // Constrain first column of FFD points.
+                    || ijk[0] == ffd_ndim_control_pts[0] - 1  // Constrain last column of FFD points.
+                    || ijk[1] == 1 // Constrain middle row of FFD points.
+                ) continue;
+
+
+                outfile_init_FFD_coords << i_ctl << "  " << ffd.control_pts[i_ctl] << "\n";
+                if(i_ctl == 1) { 
+                    double dy = 0.0436817;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 2) { 
+                    double dy = -0.0285149;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 3) { 
+                    double dy = 0.0028953;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 4) { 
+                    double dy = 0.0184767;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 5) { 
+                    double dy = 0.0120769;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 6) { 
+                    double dy = 0;//0.00489680000000001/2;//0;//0.00489680000000001;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 7) { 
+                    double dy = 0;//0.0222798/2;//0;//0.0222798;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 8) { 
+                    double dy = 0;//0.0274644/2;//0;//0.0274644;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 9) { 
+                    double dy = 0;//0.0143902/2;//0;//0.0143902;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 10) { 
+                    double dy = 0;//-0.0036255/2;//0;//-0.0036255;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 25) { 
+                    double dy = -0.0436234;//0;//-0.06107276;//-0.04798574;//0.0436234;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 26) { 
+                    double dy =  0.0283285;// 0;//0.0396599;//0.03116135;//-0.0283285;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 27) { 
+                    double dy =  -0.0030808;// 0;//-0.00431312;//-0.00338888;// 0.0030808;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 28) { 
+                    double dy =  -0.0187643;//0;//-0.02627002;//-0.02064073;// 0.0187643;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 29) { 
+                    double dy = -0.0123631;//0;//-0.01730834;//-0.01359941;// 0.0123631;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 30) { 
+                    double dy = 0;//-0.00473950000000001/2;//0;//0.00663530000000001;//0.00521345000000001;// -0.00473950000000001;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 31) { 
+                    double dy = 0;//-0.0220138/2;//0;//0.03081932;//0.02421518;//-0.0220138;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 32) { 
+                    double dy = 0;//-0.0267469/2;//0;//0.03744566;//0.02942159;//-0.0267469;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 33) { 
+                    double dy = 0;//-0.0134475/2;//0;//0.0188265;//0.01479225;// -0.0134475;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                else if(i_ctl == 34) { 
+                    double dy = 0;//0.0039125/2;//0;//-0.0054775; //-0.00430375;//0.0039125;
+                    ffd.control_pts[i_ctl][1] += dy;
+                    }
+                outfile_final_FFD_coords << ffd.control_pts[i_ctl] << "\n";
+            }
+            
+            outfile_init_FFD_coords.close();
+            outfile_final_FFD_coords.close();
+
+            Parameters::AllParameters param_target = *(TestsBase::all_parameters);
+            //const double target_AoA = 0.5;
+            //const double pi = atan(1.0) * 4.0;
+            //param_target.euler_param.angle_of_attack = target_AoA * pi/170.0;
+            std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param_target, 1, grid);
+            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim>  ("naca0012_hopw_ref3.msh", 1);
+            dg_target->set_high_order_grid(naca0012_mesh);
+
+            ffd.deform_mesh (*(dg_target->high_order_grid));
+            ffd.output_ffd_vtu(2025);
+
+            dg_target->allocate_system ();
+            dealii::VectorTools::interpolate(dg_target->dof_handler, initial_conditions, dg_target->solution);
+            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_target);
+            ode_solver->initialize_steady_polynomial_ramping (1);
+            ode_solver->steady_state();
+
+            dg_target->output_results_vtk(9998);
+            target_solution_ffd = dg_target->solution;
+
+        //Compute lift, total drag, pressure drag, and acoustic noise
+        LiftDragFunctional<dim,nstate,double> lift_functional( dg_target, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift);
+        LiftDragFunctional<dim,nstate,double> pressure_drag_functional( dg_target, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
+        LiftDragFunctional<dim,nstate,double> total_drag_functional( dg_target, LiftDragFunctional<dim,dim+2,double>::Functional_types::total_drag );
+        dealii::Point<dim,double> initial_extraction_point;
+        if constexpr(dim==2){
+            initial_extraction_point[0] = param.boundary_layer_extraction_param.extraction_point_x;
+            initial_extraction_point[1] = param.boundary_layer_extraction_param.extraction_point_y;
+        } else if constexpr(dim==3){
+            initial_extraction_point[0] = param.boundary_layer_extraction_param.extraction_point_x;
+            initial_extraction_point[1] = param.boundary_layer_extraction_param.extraction_point_y;
+            initial_extraction_point[2] = 0;
+        }
+        int number_of_sampling = param.boundary_layer_extraction_param.number_of_sampling;
+
+        //Update location of extraction point
+        dealii::Point<dim,double> new_extraction_point = ffd.new_point_location(initial_extraction_point);
+
+        std::cout << "New extraction point location: " << new_extraction_point[0] << " , " << new_extraction_point[1] << std::endl;
+
+        ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg_target, new_extraction_point, number_of_sampling);
+
+        dealii::Point<3,double> observer_coord_ref;
+        observer_coord_ref[0] = param.amiet_param.observer_coord_ref_x;
+        observer_coord_ref[1] = param.amiet_param.observer_coord_ref_y;
+        observer_coord_ref[2] = param.amiet_param.observer_coord_ref_z;
+
+        AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg_target,boundary_layer_extraction,observer_coord_ref);
+
+        std::cout << " Current lift = " << lift_functional.evaluate_functional()
+                << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
+                  << ". Current total drag = " << total_drag_functional.evaluate_functional()
+                << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
+                << std::endl;
+    
+    return;
 }
 
 template<int dim, int nstate>
@@ -980,10 +1282,10 @@ int ViscousNACAOptimization<dim,nstate>
         if (dim==2) {
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",1);
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref"+std::to_string(level)+".msh",1);
-            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref3.msh",1);
+            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref3.msh",1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", 1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", true, 1, false);
-            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh", 1);
+            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh", 1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref4.msh", 1);
             //naca0012_mesh->refine_global();
 
@@ -1028,7 +1330,6 @@ int ViscousNACAOptimization<dim,nstate>
             // std::cout<<"here"<<std::endl;
             // dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
             dg->set_high_order_grid(naca0012_mesh);
-            std::cout<<"here2"<<std::endl;
         }
         //if (dim==3) {
         //    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_wing_unstructured_cutoff.msh", true, 1, false);
@@ -1084,41 +1385,45 @@ int ViscousNACAOptimization<dim,nstate>
     Teuchos::ParameterList parlist;
 
     LiftDragFunctional<dim,nstate,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
-    LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::total_drag );
-    // LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
+    // LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::total_drag );
+    LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
     // LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
     ZMomentFunctional<dim,nstate,double> moment_functional( dg, {0.25, 0.0} );
     GeometricVolume<dim,nstate,double> volume_functional( dg );
 
+    std::ofstream outfile_lift;
+    outfile_lift.open("lift.dat");
     std::ofstream outfile_pressure_drag;
     outfile_pressure_drag.open("pressure_drag.dat");
     std::ofstream outfile_total_drag;
     outfile_total_drag.open("total_drag.dat");
+    std::ofstream outfile_acoustic;
+    outfile_acoustic.open("sound_level.dat");
 
-    // dealii::Point<dim,double> extraction_point;
-    // if constexpr(dim==2){
-    //         extraction_point[0] = 0.36;
-    //         extraction_point[1] = 0.00546019;
-    //     } else if constexpr(dim==3){
-    //         extraction_point[0] = 0.36;
-    //         extraction_point[1] = 0.00546019;
-    //         extraction_point[2] = 0;
-    //     }
-    //     int number_of_sampling = 200;
+    dealii::Point<dim,double> extraction_point;
+    if constexpr(dim==2){
+            extraction_point[0] = param.boundary_layer_extraction_param.extraction_point_x;
+            extraction_point[1] = param.boundary_layer_extraction_param.extraction_point_y;
+        } else if constexpr(dim==3){
+            extraction_point[0] = param.boundary_layer_extraction_param.extraction_point_x;
+            extraction_point[1] = param.boundary_layer_extraction_param.extraction_point_y;
+            extraction_point[2] = 0;
+        }
+        int number_of_sampling = param.boundary_layer_extraction_param.number_of_sampling;
 
-    // // ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
+    ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
 
-    // dealii::Point<3,double> observer_coord_ref;
-    // observer_coord_ref[0] = 0.0;
-    // observer_coord_ref[1] = 0.0;
-    // observer_coord_ref[2] = 2.0;
+    dealii::Point<3,double> observer_coord_ref;
+    observer_coord_ref[0] = param.amiet_param.observer_coord_ref_x;
+    observer_coord_ref[1] = param.amiet_param.observer_coord_ref_y;
+    observer_coord_ref[2] = param.amiet_param.observer_coord_ref_z;
 
-    // AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg,boundary_layer_extraction,observer_coord_ref);
+    AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg,boundary_layer_extraction,observer_coord_ref);
 
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
             //   << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
-            //   << ". Current OASPL = " << acoustic_functional.evaluate_functional()
+              << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
               << ". Current Z-moment = " << moment_functional.evaluate_functional()
               << std::endl;
 
@@ -1200,14 +1505,15 @@ int ViscousNACAOptimization<dim,nstate>
 
     if (optimization_problem_type == OptimizationProblemType::drag_minimization) {
         // Objective
-        auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, design_parameterization, precomputed_dXvdXp );
-        objective = drag_objective;
+        // auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, design_parameterization, precomputed_dXvdXp );
+        // objective = drag_objective;
 
-        // auto acoustic_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( acoustic_functional, design_parameterization, precomputed_dXvdXp );
+        // auto acoustic_objective = ROL::makePtr<ROLAcousticObjectiveSimOpt<dim,nstate>>( dg, design_parameterization, precomputed_dXvdXp );
         // objective = acoustic_objective;
 
         // Additional lift constraint
         auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp );
+        objective = lift_objective;
 
         nonlinear_inequalities_as_objectives.push_back(lift_objective);
         nonlinear_inequality_targets.push_back(lift_target);
@@ -1484,6 +1790,7 @@ int ViscousNACAOptimization<dim,nstate>
     }
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
+              << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
             //   << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
               << ". Drag with quadratic lift penalty = " << objective->value(*simulation_variables, *control_variables, tol);
     static int resulting_optimization = 5000;
@@ -1492,6 +1799,8 @@ int ViscousNACAOptimization<dim,nstate>
 
     outfile_pressure_drag.close();
     outfile_total_drag.close();
+    outfile_acoustic.close();
+    outfile_lift.close();
 
 
     timing_end = MPI_Wtime();

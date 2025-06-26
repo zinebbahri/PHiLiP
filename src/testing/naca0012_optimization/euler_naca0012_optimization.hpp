@@ -189,6 +189,8 @@ public:
 protected:
     /// Actual test for which the number of design variables can be inputted.
     int optimize (const unsigned int nx_ffd, const unsigned int poly_degree) const;
+    // Function to explore design space of the OASPL reduction
+    void OASPL_design_space(const unsigned int nx_ffd) const;
 
     ROL::Ptr<ROL::Vector<double>> getDesignVariables(
         ROL::Ptr<ROL::Vector<double>> simulation_variables,

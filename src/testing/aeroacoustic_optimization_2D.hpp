@@ -115,6 +115,7 @@ protected:
     int optimize (const unsigned int nx_ffd, const unsigned int poly_degree/*, 
                   std::shared_ptr<DGBase<dim, double>> dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver,
                   std::shared_ptr<DGBase<dim, double>> sub_dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver*/) const;
+    void OASPL_design_space(const unsigned int nx_ffd) const;
 
     ROL::Ptr<ROL::Vector<double>> getDesignVariables(
         ROL::Ptr<ROL::Vector<double>> simulation_variables,
