@@ -751,6 +751,57 @@ getSlackBoundConstraint(
     return bcon;
 }
 
+template<int dim, int nstate>
+void AeroAcousticOptimization2D<dim,nstate>::perform_steady_state_mesh_adaptation(std::shared_ptr<DGBase<dim, double>> dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver) const
+{
+    std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,double>>(dg, &(this->all_param.mesh_adaptation_param));
+    const int total_adaptation_cycles = this->all_param.mesh_adaptation_param.total_mesh_adaptation_cycles;
+    double residual_norm = dg->get_residual_l2norm();
+    
+    pcout<<"Running mesh adaptation cycles..."<<std::endl;
+    while (meshadaptation->current_mesh_adaptation_cycle < total_adaptation_cycles)
+    {
+        // Check if steady state solution is being used.
+        if(residual_norm > ode_param.nonlinear_steady_residual_tolerance)
+        {
+            pcout<<"Mesh adaptation is currently implemented for steady state flows and the current residual norm isn't sufficiently low. "
+                 <<"The solution has not converged. If p or hp adaptation is being used, issues with convergence might occur when integrating face terms with lower quad points at " 
+                 <<"the face of adjacent elements with different p. Try increasing overintegration in the parameters file to fix it."<<std::endl;
+            std::abort();
+        }
+        
+        meshadaptation->adapt_mesh();
+        ode_solver->steady_state();
+        residual_norm = ode_solver->residual_norm;
+        // flow_solver_case->steady_state_postprocessing(dg); 
+    }
+
+    pcout<<"Finished running mesh adaptation cycles."<<std::endl; 
+}
+
+
+template<int dim, int nstate>
+int AeroAcousticOptimization2D<dim,nstate>
+::run_test () const
+{
+    int test_error = 0;
+    int design_space = 1;
+    std::filebuf filebuffer;
+    if (this->mpi_rank == 2) filebuffer.open ("optimization.log", std::ios::out);
+    if (this->mpi_rank == 0) filebuffer.close();
+
+    // for (unsigned int poly_degree = POLY_START; poly_degree <= POLY_END; ++poly_degree) {
+        // for (const unsigned int n_des_var : n_des_var_list) {
+            // const unsigned int nx_ffd = n_des_var + 2;
+            const unsigned int nx_ffd = 10 + 2;
+            if (design_space == 0)
+            test_error += optimize(nx_ffd, poly_degree/*, this->header_dg, this->ode_solver, this->header_sub_dg, this->sub_ode_solver*/);
+            else
+            OASPL_design_space(nx_ffd);
+        // }
+    // }
+    return test_error;
+}
 
 template<int dim, int nstate>
 void AeroAcousticOptimization2D<dim,nstate>::OASPL_design_space(const unsigned int nx_ffd) const
@@ -842,83 +893,83 @@ void AeroAcousticOptimization2D<dim,nstate>::OASPL_design_space(const unsigned i
 
                 outfile_init_FFD_coords << i_ctl << "  " << ffd.control_pts[i_ctl] << "\n";
                 if(i_ctl == 1) { 
-                    double dy = 0.0300759245901639;//0.0436817;
+                    double dy = 0.0250632704918033;//0.0300759245901639;//0.0436817;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 2) { 
-                    double dy = -0.0196332098360656;//-0.0285149;
+                    double dy = -0.0163610081967213;//-0.0196332098360656;//-0.0285149;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 3) { 
-                    double dy = 0.00199348524590164;//0.0028953;
+                    double dy = 0.00166123770491803;//0.00199348524590164;//0.0028953;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 4) { 
-                    double dy = 0.012721662295082;//0.0184767;
+                    double dy = 0.0106013852459016;//0.012721662295082;//0.0184767;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 5) { 
-                    double dy = 0.00831524262295082;//0.0120769;
+                    double dy = 0.00692936885245902;//0.00831524262295082;//0.0120769;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 6) { 
-                    double dy = -0.00337156721311476;//0.00489680000000001/2;//0;//0.00489680000000001;
+                    double dy = 0;//-0.00337156721311476;//0.00489680000000001/2;//0;//0.00489680000000001;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 7) { 
-                    double dy = -0.0153401901639344;//0.0222798/2;//0;//0.0222798;
+                    double dy = 0;//-0.0153401901639344;//0.0222798/2;//0;//0.0222798;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 8) { 
-                    double dy = -0.0189099147540984;//0.0274644/2;//0;//0.0274644;
+                    double dy = 0;//-0.0189099147540984;//0.0274644/2;//0;//0.0274644;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 9) { 
-                    double dy = -0.00990800655737705;//0.0143902/2;//0;//0.0143902;
+                    double dy = 0;//-0.00990800655737705;//0.0143902/2;//0;//0.0143902;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 10) { 
-                    double dy = 0.00249624590163934;//-0.0036255/2;//0;//-0.0036255;
+                    double dy = 0;//0.00249624590163934;//-0.0036255/2;//0;//-0.0036255;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 25) { 
-                    double dy = -0.0300357836065574;//-0.0436234;//0;//-0.06107276;//-0.04798574;//0.0436234;
+                    double dy = -0.0250298196721311;//-0.0300357836065574;//-0.0436234;//0;//-0.06107276;//-0.04798574;//0.0436234;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 26) { 
-                    double dy =  0.019504868852459;//0.0283285;// 0;//0.0396599;//0.03116135;//-0.0283285;
+                    double dy =  0.0162540573770492;//0.019504868852459;//0.0283285;// 0;//0.0396599;//0.03116135;//-0.0283285;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 27) { 
-                    double dy =  -0.00212120655737705;//-0.0030808;// 0;//-0.00431312;//-0.00338888;// 0.0030808;
+                    double dy =  -0.00176767213114754;//-0.00212120655737705;//-0.0030808;// 0;//-0.00431312;//-0.00338888;// 0.0030808;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 28) { 
-                    double dy =  -0.0129196819672131;//-0.0187643;//0;//-0.02627002;//-0.02064073;// 0.0187643;
+                    double dy =  -0.0107664016393443;//-0.0129196819672131;//-0.0187643;//0;//-0.02627002;//-0.02064073;// 0.0187643;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 29) { 
-                    double dy = -0.00851229836065574;//-0.0123631;//0;//-0.01730834;//-0.01359941;// 0.0123631;
+                    double dy = -0.00709358196721312;//-0.00851229836065574;//-0.0123631;//0;//-0.01730834;//-0.01359941;// 0.0123631;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 30) { 
-                    double dy = 0.00326326229508197;//-0.00473950000000001/2;//0;//0.00663530000000001;//0.00521345000000001;// -0.00473950000000001;
+                    double dy = 0;//0.00326326229508197;//-0.00473950000000001/2;//0;//0.00663530000000001;//0.00521345000000001;// -0.00473950000000001;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 31) { 
-                    double dy = 0.0151570426229508;//-0.0220138/2;//0;//0.03081932;//0.02421518;//-0.0220138;
+                    double dy = 0;//0.0151570426229508;//-0.0220138/2;//0;//0.03081932;//0.02421518;//-0.0220138;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 32) { 
-                    double dy = 0.0184158983606557;//-0.0267469/2;//0;//0.03744566;//0.02942159;//-0.0267469;
+                    double dy = 0;//0.0184158983606557;//-0.0267469/2;//0;//0.03744566;//0.02942159;//-0.0267469;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 33) { 
-                    double dy = 0.00925893442622951;//-0.0134475/2;//0;//0.0188265;//0.01479225;// -0.0134475;
+                    double dy = 0;//0.00925893442622951;//-0.0134475/2;//0;//0.0188265;//0.01479225;// -0.0134475;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 34) { 
-                    double dy = -0.00269385245901639;//0.0039125/2;//0;//-0.0054775; //-0.00430375;//0.0039125;
+                    double dy = 0;//-0.00269385245901639;//0.0039125/2;//0;//-0.0054775; //-0.00430375;//0.0039125;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 outfile_final_FFD_coords << ffd.control_pts[i_ctl] << "\n";
@@ -971,6 +1022,7 @@ std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::creat
 std::shared_ptr < DGBase<dim, double> > sub_dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, sub_poly_degree, sub_flow_solver_param.max_poly_degree_for_adaptation, sub_grid_degree, naca0012_mesh);
 
 ffd.deform_mesh (*(dg_target->high_order_grid));
+ffd.deform_mesh (*(sub_dg_target->high_order_grid));
 ffd.output_ffd_vtu(2025);
 
 // main flow solver set up
@@ -1087,54 +1139,6 @@ ffd.output_ffd_vtu(2025);
     
     return;
 
-}
-
-template<int dim, int nstate>
-void AeroAcousticOptimization2D<dim,nstate>::perform_steady_state_mesh_adaptation(std::shared_ptr<DGBase<dim, double>> dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver) const
-{
-    std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,double>>(dg, &(this->all_param.mesh_adaptation_param));
-    const int total_adaptation_cycles = this->all_param.mesh_adaptation_param.total_mesh_adaptation_cycles;
-    double residual_norm = dg->get_residual_l2norm();
-    
-    pcout<<"Running mesh adaptation cycles..."<<std::endl;
-    while (meshadaptation->current_mesh_adaptation_cycle < total_adaptation_cycles)
-    {
-        // Check if steady state solution is being used.
-        if(residual_norm > ode_param.nonlinear_steady_residual_tolerance)
-        {
-            pcout<<"Mesh adaptation is currently implemented for steady state flows and the current residual norm isn't sufficiently low. "
-                 <<"The solution has not converged. If p or hp adaptation is being used, issues with convergence might occur when integrating face terms with lower quad points at " 
-                 <<"the face of adjacent elements with different p. Try increasing overintegration in the parameters file to fix it."<<std::endl;
-            std::abort();
-        }
-        
-        meshadaptation->adapt_mesh();
-        ode_solver->steady_state();
-        residual_norm = ode_solver->residual_norm;
-        // flow_solver_case->steady_state_postprocessing(dg); 
-    }
-
-    pcout<<"Finished running mesh adaptation cycles."<<std::endl; 
-}
-
-
-template<int dim, int nstate>
-int AeroAcousticOptimization2D<dim,nstate>
-::run_test () const
-{
-    int test_error = 0;
-    std::filebuf filebuffer;
-    if (this->mpi_rank == 2) filebuffer.open ("optimization.log", std::ios::out);
-    if (this->mpi_rank == 0) filebuffer.close();
-
-    // for (unsigned int poly_degree = POLY_START; poly_degree <= POLY_END; ++poly_degree) {
-        // for (const unsigned int n_des_var : n_des_var_list) {
-            // const unsigned int nx_ffd = n_des_var + 2;
-            const unsigned int nx_ffd = 10;
-            test_error += optimize(nx_ffd, poly_degree/*, this->header_dg, this->ode_solver, this->header_sub_dg, this->sub_ode_solver*/);
-        // }
-    // }
-    return test_error;
 }
 
 template<int dim, int nstate>

@@ -37,7 +37,7 @@ private:
     const Functional_types functional_type;
 
     // /// @brief Casts DG's physics into an Euler physics reference.
-    const Physics::Euler<dim,dim+2,FadFadType> &euler_fad_fad;
+    // const Physics::Euler<dim,dim+2,FadFadType> &euler_fad_fad;
 
 /// @brief Casts DG's physics into an physics rans reference.
     // const Physics::NavierStokes<dim,dim+2,FadFadType> &NS_fad_fad;
@@ -73,10 +73,10 @@ private:
     /// Compute force dimensionalization factor.
     double initialize_force_dimensionalization_factor()
     {
-        const double ref_length  = euler_fad_fad.ref_length;
-        // const double ref_length  = 1.0;
-        const double dynamic_pressure_inf  = euler_fad_fad.dynamic_pressure_inf;
-        // const double dynamic_pressure_inf  = 0.5;
+        // const double ref_length  = euler_fad_fad.ref_length;
+        const double ref_length  = 1.0;
+        // const double dynamic_pressure_inf  = euler_fad_fad.dynamic_pressure_inf;
+        const double dynamic_pressure_inf  = 0.5;
 
         return 1.0 / (ref_length * dynamic_pressure_inf);
     }
@@ -160,7 +160,7 @@ public:
         : Functional<dim,nstate,real>(dg_input)
         , functional_type(functional_type)
         // , NS_fad_fad(dynamic_cast< Physics::NavierStokes<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
-        , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
+        // , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
         // , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadType> &>((PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler))))
         // , euler_fad_fad(std::dynamic_pointer_cast< Physics::Euler<dim,dim+2,FadType> >(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler)))
         , angle_of_attack(0.0)

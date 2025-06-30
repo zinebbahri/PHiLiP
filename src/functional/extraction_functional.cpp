@@ -91,7 +91,7 @@ void ExtractionFunctional<dim,nstate,real,MeshType>
         for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
             if (extraction_cell->face(face)->at_boundary()) {
                 this->start_point_normal_vector = extraction_cell->face(face)->get_manifold().normal_vector(extraction_cell->face(face),this->start_point);
-                // this->start_point_normal_vector*= -1.0;
+                this->start_point_normal_vector*= -1.0;
                 dealii::Point<dim,real> start_point_neighbor = this->start_point;
                 // Todo: may have a better way to build a tangential vector respect to the surface geometry
                 start_point_neighbor[0] += 1e-3;

@@ -707,6 +707,7 @@ int ViscousNACAOptimization<dim,nstate>
 {
     int test_error = 0;
     int design_space = 0;
+    int read_solution = 1;
     std::filebuf filebuffer;
     if (this->mpi_rank == 2) filebuffer.open ("optimization.log", std::ios::out);
     if (this->mpi_rank == 0) filebuffer.close();
@@ -714,10 +715,14 @@ int ViscousNACAOptimization<dim,nstate>
     for (unsigned int poly_degree = POLY_START; poly_degree <= POLY_END; ++poly_degree) {
         for (const unsigned int n_des_var : n_des_var_list) {
             const unsigned int nx_ffd = n_des_var + 2;
-            if (design_space == 0)
-            test_error += optimize(nx_ffd, poly_degree);
-            else
-            OASPL_design_space(nx_ffd);
+            if (design_space == 0){
+                std::cout << "Performing optimization"<< std::endl;
+                test_error += optimize(nx_ffd, poly_degree, read_solution);
+            }
+            else{
+                std::cout << "Exploring OASPL design space" << std::endl;
+                OASPL_design_space(nx_ffd);
+            }
         }
     }
     return test_error;
@@ -772,8 +777,12 @@ void ViscousNACAOptimization<dim,nstate>
             ffd_origin = dealii::Point<dim> (-0.60,-0.51);
             ffd_rectangle_lengths = std::array<double,dim> {{1.0+0.2,1.0+0.02}};
         } else if (grid_type == GridType::naca0012) {
-            ffd_origin = dealii::Point<dim> (0.0,-0.061);
-            ffd_rectangle_lengths = std::array<double,dim> {{0.999,0.122}};
+            // for REF grids
+            // ffd_origin = dealii::Point<dim> (0.0,-0.061);
+            // ffd_rectangle_lengths = std::array<double,dim> {{0.999,0.122}};
+            //// Coordinates for NACA deall II grid
+            ffd_origin = dealii::Point<dim> (-0.025,-0.035);
+            ffd_rectangle_lengths = std::array<double,dim> {{0.45,0.07}};
             //    ffd_origin = dealii::Point<dim> (-0.1,-0.1);
             //    ffd_rectangle_lengths = std::array<double,dim> {{0.6,0.2}};
                 //ffd_rectangle_lengths = std::array<double,dim> {{1.0,0.122}};
@@ -822,44 +831,6 @@ void ViscousNACAOptimization<dim,nstate>
         grid->clear();
         dealii::GridGenerator::hyper_cube(*grid);
 
-        if constexpr (dim == 2) {
-        if (grid_type == GridType::cylinder) {
-            //int n_cells_circle = 45;
-            //int n_cells_radial = 45;
-            //PHiLiP::Grids::cylinder(*grid, n_cells_circle, n_cells_radial);
-
-            const dealii::Point<dim> center(0.0,0.0);
-            const double        inner_radius = 0.5;
-            const double        outer_radius = 40;
-            const unsigned int  n_shells = 40;
-            const double        skewness = 3.0;
-            const unsigned int  n_cells_per_shell = 40;
-            const bool          colorize = true;
-            dealii::GridGenerator::concentric_hyper_shells(*grid, center, inner_radius, outer_radius, n_shells, skewness, n_cells_per_shell, colorize);
-
-            grid->set_all_manifold_ids(0);
-            grid->set_manifold(0, dealii::SphericalManifold<2>(center));
-
-            // Assign BC
-            for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
-                //if (!cell->is_locally_owned()) continue;
-                for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
-                    if (cell->face(face)->at_boundary()) {
-                        unsigned int current_id = cell->face(face)->boundary_id();
-                        if (current_id == 0) {
-                            cell->face(face)->set_boundary_id (1001); // Wall
-                        } else if (current_id == 1) {
-                            cell->face(face)->set_boundary_id (1004); // Farfield
-                        } else {
-                            std::abort();
-                        }
-                    }
-                }
-            }
-
-            }
-            }
-
             // Exploring the design spaces of the OASPL reduction by deforming the NACA0012 mesh and computing the acoustic signature
             DealiiVector target_solution_ffd;
         
@@ -878,23 +849,23 @@ void ViscousNACAOptimization<dim,nstate>
 
                 outfile_init_FFD_coords << i_ctl << "  " << ffd.control_pts[i_ctl] << "\n";
                 if(i_ctl == 1) { 
-                    double dy = 0.0436817;
+                    double dy = 0.0250632704918033;//0;//0.0436817;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 2) { 
-                    double dy = -0.0285149;
+                    double dy = -0.0163610081967213;//0;//-0.0285149;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 3) { 
-                    double dy = 0.0028953;
+                    double dy = 0.00166123770491803;//0;//0.0028953;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 4) { 
-                    double dy = 0.0184767;
+                    double dy = 0.0106013852459016;//0;//0.0184767;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 5) { 
-                    double dy = 0.0120769;
+                    double dy = 0.00692936885245902;//0;//0.0120769;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 6) { 
@@ -918,23 +889,23 @@ void ViscousNACAOptimization<dim,nstate>
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 25) { 
-                    double dy = -0.0436234;//0;//-0.06107276;//-0.04798574;//0.0436234;
+                    double dy = -0.0250298196721311;//0;//-0.0436234;//0;//-0.06107276;//-0.04798574;//0.0436234;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 26) { 
-                    double dy =  0.0283285;// 0;//0.0396599;//0.03116135;//-0.0283285;
+                    double dy =  -0.00176767213114754;//0.0162540573770492;//0;//0.0283285;// 0;//0.0396599;//0.03116135;//-0.0283285;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 27) { 
-                    double dy =  -0.0030808;// 0;//-0.00431312;//-0.00338888;// 0.0030808;
+                    double dy =  -0.0107664016393443;//0;//-0.0030808;// 0;//-0.00431312;//-0.00338888;// 0.0030808;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 28) { 
-                    double dy =  -0.0187643;//0;//-0.02627002;//-0.02064073;// 0.0187643;
+                    double dy = -0.00709358196721312;//0;// -0.0187643;//0;//-0.02627002;//-0.02064073;// 0.0187643;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 29) { 
-                    double dy = -0.0123631;//0;//-0.01730834;//-0.01359941;// 0.0123631;
+                    double dy = 0;//-0.0123631;//0;//-0.01730834;//-0.01359941;// 0.0123631;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 30) { 
@@ -963,20 +934,67 @@ void ViscousNACAOptimization<dim,nstate>
             outfile_init_FFD_coords.close();
             outfile_final_FFD_coords.close();
 
-            Parameters::AllParameters param_target = *(TestsBase::all_parameters);
             //const double target_AoA = 0.5;
             //const double pi = atan(1.0) * 4.0;
             //param_target.euler_param.angle_of_attack = target_AoA * pi/170.0;
-            std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param_target, 1, grid);
-            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim>  ("naca0012_hopw_ref3.msh", 1);
-            dg_target->set_high_order_grid(naca0012_mesh);
+            // std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param_target, 1, grid);
+
+            // using REF grids
+            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim>  ("naca0012_hopw_ref3.msh", 1);
+            // dg_target->set_high_order_grid(naca0012_mesh);
+
+
+            // using dealii Grid Generator
+            std::shared_ptr<Triangulation> naca0012_mesh = std::make_shared<Triangulation> (
+            #if dim!=1
+                this->mpi_communicator
+            #endif
+            );
+
+            dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
+            airfoil_data.airfoil_type = "NACA";
+            airfoil_data.naca_id      = "0012";
+            airfoil_data.airfoil_length = param.flow_solver_param.airfoil_length;
+            airfoil_data.height         = param.flow_solver_param.height;
+            airfoil_data.length_b2      = param.flow_solver_param.length_b2;
+            airfoil_data.incline_factor = param.flow_solver_param.incline_factor;
+            airfoil_data.bias_factor    = param.flow_solver_param.bias_factor; 
+            airfoil_data.refinements    = param.flow_solver_param.refinements;
+
+            airfoil_data.n_subdivision_x_0 = param.flow_solver_param.n_subdivision_x_0;
+            airfoil_data.n_subdivision_x_1 = param.flow_solver_param.n_subdivision_x_1;
+            airfoil_data.n_subdivision_x_2 = param.flow_solver_param.n_subdivision_x_2;
+            airfoil_data.n_subdivision_y = param.flow_solver_param.n_subdivision_y;
+            airfoil_data.airfoil_sampling_factor = param.flow_solver_param.airfoil_sampling_factor; 
+
+            dealii::GridGenerator::Airfoil::create_triangulation(*naca0012_mesh, airfoil_data);
+
+                // Set boundary type and design type
+            for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = naca0012_mesh->begin_active(); cell != naca0012_mesh->end(); ++cell) {
+                for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+                    if (cell->face(face)->at_boundary()) {
+                        unsigned int current_id = cell->face(face)->boundary_id();
+                        if (current_id == 0 || current_id == 1 || current_id == 4 || current_id == 5) {
+                            cell->face(face)->set_boundary_id (1005); // farfield
+                        } else {
+                            cell->face(face)->set_boundary_id (1001); // wall
+                        }
+                    }
+                }
+            }
+            const int poly_degree = 1;
+            std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, param.flow_solver_param.max_poly_degree_for_adaptation, param.flow_solver_param.grid_degree, naca0012_mesh);
+            // dg_target->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
 
             ffd.deform_mesh (*(dg_target->high_order_grid));
             ffd.output_ffd_vtu(2025);
 
             dg_target->allocate_system ();
+            //  dg_target->allocate_system (true,true,false);
             dealii::VectorTools::interpolate(dg_target->dof_handler, initial_conditions, dg_target->solution);
+            // dg_target->solution.update_ghost_values();
             std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_target);
+            // ode_solver->allocate_ode_system();
             ode_solver->initialize_steady_polynomial_ramping (1);
             ode_solver->steady_state();
 
@@ -987,6 +1005,13 @@ void ViscousNACAOptimization<dim,nstate>
         LiftDragFunctional<dim,nstate,double> lift_functional( dg_target, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift);
         LiftDragFunctional<dim,nstate,double> pressure_drag_functional( dg_target, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
         LiftDragFunctional<dim,nstate,double> total_drag_functional( dg_target, LiftDragFunctional<dim,dim+2,double>::Functional_types::total_drag );
+
+        std::cout << " Current lift = " << lift_functional.evaluate_functional()
+                << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
+                  << ". Current total drag = " << total_drag_functional.evaluate_functional()
+                // << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
+                << std::endl;
+
         dealii::Point<dim,double> initial_extraction_point;
         if constexpr(dim==2){
             initial_extraction_point[0] = param.boundary_layer_extraction_param.extraction_point_x;
@@ -1022,8 +1047,79 @@ void ViscousNACAOptimization<dim,nstate>
 }
 
 template<int dim, int nstate>
+void ViscousNACAOptimization<dim,nstate>::write_solution_volume_nodes_to_file(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    std::cout << "Writing solution to file" << std::endl;
+    const int n_cells = dg->triangulation->n_global_active_cells();
+    const int poly_degree = dg->get_min_fe_degree();
+    const std::string filename_soln = 
+                    "solution_" + std::to_string(this->mpi_rank) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+    const std::string filename_volnodes = 
+                    "volnodes_" + std::to_string(this->mpi_rank) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+    const dealii::IndexSet &soln_range = dg->solution.get_partitioner()->locally_owned_range();
+    const dealii::IndexSet &vol_range = dg->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
+
+    std::ofstream outfile_soln(filename_soln);
+    std::ofstream outfile_volnodes(filename_volnodes);
+
+    if( (!outfile_soln.is_open()) || (!outfile_volnodes.is_open()))
+    {
+        std::cout<<"Could not open file. Aborting.."<<std::endl;
+        std::abort();
+    }
+
+    for(const auto &isol : soln_range)
+    {
+        outfile_soln<<std::setprecision(16)<<dg->solution(isol)<<"\n";
+    }
+    for(const auto &ivol : vol_range)
+    {
+        outfile_volnodes<<std::setprecision(16)<<dg->high_order_grid->volume_nodes(ivol)<<"\n";
+    }
+    outfile_soln.close();
+    outfile_volnodes.close();
+}
+
+
+template<int dim, int nstate>
+void ViscousNACAOptimization<dim,nstate>::read_solution_volume_nodes_from_file(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    const int n_cells = dg->triangulation->n_global_active_cells();
+    const int poly_degree = dg->get_min_fe_degree();
+    const std::string filename_soln = 
+                    "solution_" + std::to_string(this->mpi_rank) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+    const std::string filename_volnodes = 
+                    "volnodes_" + std::to_string(this->mpi_rank) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+    const dealii::IndexSet &soln_range = dg->solution.get_partitioner()->locally_owned_range();
+    const dealii::IndexSet &vol_range = dg->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
+
+    std::ifstream infile_soln(filename_soln);
+    std::ifstream infile_volnodes(filename_volnodes);
+
+    if( (!infile_soln.is_open()) || (!infile_volnodes.is_open()))
+    {
+        std::cout<<"Could not open file. Aborting.."<<std::endl;
+        std::abort();
+    }
+
+    for(const auto &isol : soln_range)
+    {
+        infile_soln>>dg->solution(isol);
+    }
+    for(const auto &ivol : vol_range)
+    {
+        infile_volnodes>>dg->high_order_grid->volume_nodes(ivol);
+    }
+    infile_soln.close();
+    infile_volnodes.close();
+    dg->high_order_grid->volume_nodes.update_ghost_values();
+    dg->solution.update_ghost_values();
+}
+
+
+template<int dim, int nstate>
 int ViscousNACAOptimization<dim,nstate>
-::optimize (const unsigned int nx_ffd, const unsigned int level) const
+::optimize (const unsigned int nx_ffd, const unsigned int level, const unsigned int read_solution) const
 {
     int test_error = 0;
 
@@ -1114,24 +1210,6 @@ int ViscousNACAOptimization<dim,nstate>
     dRdW_mult = 0;
     dRdX_mult = 0;
     d2R_mult = 0;
-    
-
-    // Physics::NavierStokes<dim, nstate, double> rans_NS_physics_double
-    //         = Physics::NavierStokes<dim, nstate, double>(
-    //                 &param,
-    //                 param.euler_param.ref_length,
-    //                 param.euler_param.gamma_gas,
-    //                 param.euler_param.mach_inf,
-    //                 param.euler_param.angle_of_attack,
-    //                 param.euler_param.side_slip_angle,
-    //                 param.navier_stokes_param.prandtl_number,
-    //                 param.navier_stokes_param.reynolds_number_inf,
-    //                 param.navier_stokes_param.use_constant_viscosity,
-    //                 param.navier_stokes_param.nondimensionalized_constant_viscosity,
-    //                 273.15,
-    //                 1.0
-    //                 );
-    //     FreeStreamInitialConditions_RANS_SA_negative<dim,nstate,double> initial_conditions(rans_NS_physics_double);
     
     Physics::Euler<dim,nstate,double> euler_physics_double
         = Physics::Euler<dim, nstate, double>(
@@ -1246,46 +1324,19 @@ int ViscousNACAOptimization<dim,nstate>
             }
         }
 
-        }
+    }
     }
 
     const int poly_degree = level;
     std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
     if (grid_type == GridType::naca0012) {
-        //const double farfield_length = 20.0;
-        //dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
-        //airfoil_data.airfoil_type = "NACA";
-        //airfoil_data.naca_id      = "0012";
-        //airfoil_data.airfoil_length = 1.0;
-        //airfoil_data.height         = farfield_length;
-        //airfoil_data.length_b2      = farfield_length;
-        //airfoil_data.incline_factor = 0.35;
-        //airfoil_data.bias_factor    = 3.5; // default good enough?
-        //airfoil_data.refinements    = 0;
-
-
-        //const double multiplier = 1.0;
-        //const int n_cells_leading_edge = 10 * multiplier;
-        //const int n_cells_trailing_edge = 10 * multiplier;
-        //const int n_cells_normal_to_airfoil = 10 * multiplier;
-        //const int n_cells_downstream = 10 * multiplier;
-        //airfoil_data.n_subdivision_x_0 = n_cells_leading_edge;
-        //airfoil_data.n_subdivision_x_1 = n_cells_trailing_edge;
-        //airfoil_data.n_subdivision_x_2 = n_cells_downstream;
-        //airfoil_data.n_subdivision_y = n_cells_normal_to_airfoil;
-        //airfoil_data.airfoil_sampling_factor = 3; // default 2
-        //PHiLiP::Grids::naca_airfoil(*grid, airfoil_data);
-
-        //dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
-
-        if (dim==2) {
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",1);
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref"+std::to_string(level)+".msh",1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref3.msh",1);
-            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", 1);
+            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", 1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", true, 1, false);
-            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh", 1);
+            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh", 1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref4.msh", 1);
             //naca0012_mesh->refine_global();
 
@@ -1299,18 +1350,18 @@ int ViscousNACAOptimization<dim,nstate>
         //     dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
         //     airfoil_data.airfoil_type = "NACA";
         //     airfoil_data.naca_id      = "0012";
-        //     airfoil_data.airfoil_length = 1;
-        //     airfoil_data.height         = 4.0;
-        //     airfoil_data.length_b2      = 4.0;
-        //     airfoil_data.incline_factor = 0.08;
-        //     airfoil_data.bias_factor    = 4.0; 
-        //     airfoil_data.refinements    = 0;
+        //     airfoil_data.airfoil_length = param.flow_solver_param.airfoil_length;
+        //     airfoil_data.height         = param.flow_solver_param.height;
+        //     airfoil_data.length_b2      = param.flow_solver_param.length_b2;
+        //     airfoil_data.incline_factor = param.flow_solver_param.incline_factor;
+        //     airfoil_data.bias_factor    = param.flow_solver_param.bias_factor; 
+        //     airfoil_data.refinements    = param.flow_solver_param.refinements;
 
-        //     airfoil_data.n_subdivision_x_0 = 60;//150;
-        //     airfoil_data.n_subdivision_x_1 = 70;//175;
-        //     airfoil_data.n_subdivision_x_2 = 50;//125;
-        //     airfoil_data.n_subdivision_y = 50;//125;
-        //     airfoil_data.airfoil_sampling_factor = 100; 
+        //     airfoil_data.n_subdivision_x_0 = param.flow_solver_param.n_subdivision_x_0;
+        //     airfoil_data.n_subdivision_x_1 = param.flow_solver_param.n_subdivision_x_1;
+        //     airfoil_data.n_subdivision_x_2 = param.flow_solver_param.n_subdivision_x_2;
+        //     airfoil_data.n_subdivision_y = param.flow_solver_param.n_subdivision_y;
+        //     airfoil_data.airfoil_sampling_factor = param.flow_solver_param.airfoil_sampling_factor; 
 
         //     dealii::GridGenerator::Airfoil::create_triangulation(*naca0012_mesh, airfoil_data);
 
@@ -1327,13 +1378,11 @@ int ViscousNACAOptimization<dim,nstate>
         //             }
         //         }
         //     }
-            // std::cout<<"here"<<std::endl;
-            // dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
-            dg->set_high_order_grid(naca0012_mesh);
-        }
+            // dg->set_high_order_grid(naca0012_mesh);
+            // std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, param.flow_solver_param.max_poly_degree_for_adaptation, param.flow_solver_param.grid_degree, naca0012_mesh);
         //if (dim==3) {
         //    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_wing_unstructured_cutoff.msh", true, 1, false);
-        //    dg->set_high_order_grid(naca0012_mesh);
+           dg->set_high_order_grid(naca0012_mesh);
         //}
     }
 
@@ -1357,6 +1406,8 @@ int ViscousNACAOptimization<dim,nstate>
     TargetWallPressure<dim,nstate,double> target_wall_pressure_functional(dg, target_solution);
 #endif
 
+
+if (!read_solution){
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
@@ -1364,6 +1415,14 @@ int ViscousNACAOptimization<dim,nstate>
     ode_solver->initialize_steady_polynomial_ramping (poly_degree);
     // // Solve the steady state problem
     ode_solver->steady_state();
+
+    std::cout << "Sending to write solution to file" << std::endl;
+    write_solution_volume_nodes_to_file(dg);
+}
+else{
+    std::cout << "Reading solution from file" << std::endl;
+    read_solution_volume_nodes_from_file(dg);
+}
 
     // Reset to initial_grid
     DealiiVector des_var_sim = dg->solution;
