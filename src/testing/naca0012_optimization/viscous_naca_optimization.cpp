@@ -721,7 +721,7 @@ int ViscousNACAOptimization<dim,nstate>
             }
             else{
                 std::cout << "Exploring OASPL design space" << std::endl;
-                OASPL_design_space(nx_ffd);
+                OASPL_design_space(nx_ffd, read_solution);
             }
         }
     }
@@ -729,7 +729,7 @@ int ViscousNACAOptimization<dim,nstate>
 }
 template<int dim, int nstate>
 void ViscousNACAOptimization<dim,nstate>
-::OASPL_design_space (const unsigned int nx_ffd) const
+::OASPL_design_space (const unsigned int nx_ffd, const unsigned int read_solution) const
 {
     using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
     using VectorAdaptor = dealii::Rol::VectorAdaptor<DealiiVector>;
@@ -989,17 +989,28 @@ void ViscousNACAOptimization<dim,nstate>
             ffd.deform_mesh (*(dg_target->high_order_grid));
             ffd.output_ffd_vtu(2025);
 
-            dg_target->allocate_system ();
-            //  dg_target->allocate_system (true,true,false);
-            dealii::VectorTools::interpolate(dg_target->dof_handler, initial_conditions, dg_target->solution);
-            // dg_target->solution.update_ghost_values();
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_target);
-            // ode_solver->allocate_ode_system();
-            ode_solver->initialize_steady_polynomial_ramping (1);
-            ode_solver->steady_state();
+            if(!read_solution){
+                dg_target->allocate_system ();
+                //  dg_target->allocate_system (true,true,false);
+                dealii::VectorTools::interpolate(dg_target->dof_handler, initial_conditions, dg_target->solution);
+                // dg_target->solution.update_ghost_values();
+                std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_target);
+                // ode_solver->allocate_ode_system();
+                ode_solver->initialize_steady_polynomial_ramping (1);
+                ode_solver->steady_state();
+
+                std::cout << "Sending to write solution to file" << std::endl;
+                write_solution_volume_nodes_to_file(dg_target);
+            }
+            else{
+               std::cout << "Reading solution from file" << std::endl;
+               read_solution_volume_nodes_from_file(dg_target);
+            }
 
             dg_target->output_results_vtk(9998);
             target_solution_ffd = dg_target->solution;
+
+
 
         //Compute lift, total drag, pressure drag, and acoustic noise
         LiftDragFunctional<dim,nstate,double> lift_functional( dg_target, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift);
@@ -1334,50 +1345,50 @@ int ViscousNACAOptimization<dim,nstate>
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",1);
             //std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref"+std::to_string(level)+".msh",1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref3.msh",1);
-            std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", 1);
+            // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", 1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref1.msh", true, 1, false);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh", 1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref4.msh", 1);
             //naca0012_mesh->refine_global();
 
     // using dealii Grid Generator
-        //     std::shared_ptr<Triangulation> naca0012_mesh = std::make_shared<Triangulation> (
-        // #if dim!=1
-        //     this->mpi_communicator
-        // #endif
-        //     );
+            std::shared_ptr<Triangulation> naca0012_mesh = std::make_shared<Triangulation> (
+        #if dim!=1
+            this->mpi_communicator
+        #endif
+            );
 
-        //     dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
-        //     airfoil_data.airfoil_type = "NACA";
-        //     airfoil_data.naca_id      = "0012";
-        //     airfoil_data.airfoil_length = param.flow_solver_param.airfoil_length;
-        //     airfoil_data.height         = param.flow_solver_param.height;
-        //     airfoil_data.length_b2      = param.flow_solver_param.length_b2;
-        //     airfoil_data.incline_factor = param.flow_solver_param.incline_factor;
-        //     airfoil_data.bias_factor    = param.flow_solver_param.bias_factor; 
-        //     airfoil_data.refinements    = param.flow_solver_param.refinements;
+            dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
+            airfoil_data.airfoil_type = "NACA";
+            airfoil_data.naca_id      = "0012";
+            airfoil_data.airfoil_length = param.flow_solver_param.airfoil_length;
+            airfoil_data.height         = param.flow_solver_param.height;
+            airfoil_data.length_b2      = param.flow_solver_param.length_b2;
+            airfoil_data.incline_factor = param.flow_solver_param.incline_factor;
+            airfoil_data.bias_factor    = param.flow_solver_param.bias_factor; 
+            airfoil_data.refinements    = param.flow_solver_param.refinements;
 
-        //     airfoil_data.n_subdivision_x_0 = param.flow_solver_param.n_subdivision_x_0;
-        //     airfoil_data.n_subdivision_x_1 = param.flow_solver_param.n_subdivision_x_1;
-        //     airfoil_data.n_subdivision_x_2 = param.flow_solver_param.n_subdivision_x_2;
-        //     airfoil_data.n_subdivision_y = param.flow_solver_param.n_subdivision_y;
-        //     airfoil_data.airfoil_sampling_factor = param.flow_solver_param.airfoil_sampling_factor; 
+            airfoil_data.n_subdivision_x_0 = param.flow_solver_param.n_subdivision_x_0;
+            airfoil_data.n_subdivision_x_1 = param.flow_solver_param.n_subdivision_x_1;
+            airfoil_data.n_subdivision_x_2 = param.flow_solver_param.n_subdivision_x_2;
+            airfoil_data.n_subdivision_y = param.flow_solver_param.n_subdivision_y;
+            airfoil_data.airfoil_sampling_factor = param.flow_solver_param.airfoil_sampling_factor; 
 
-        //     dealii::GridGenerator::Airfoil::create_triangulation(*naca0012_mesh, airfoil_data);
+            dealii::GridGenerator::Airfoil::create_triangulation(*naca0012_mesh, airfoil_data);
 
-        //         // Set boundary type and design type
-        //     for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = naca0012_mesh->begin_active(); cell != naca0012_mesh->end(); ++cell) {
-        //         for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
-        //             if (cell->face(face)->at_boundary()) {
-        //                 unsigned int current_id = cell->face(face)->boundary_id();
-        //                 if (current_id == 0 || current_id == 1 || current_id == 4 || current_id == 5) {
-        //                     cell->face(face)->set_boundary_id (1005); // farfield
-        //                 } else {
-        //                     cell->face(face)->set_boundary_id (1001); // wall
-        //                 }
-        //             }
-        //         }
-        //     }
+                // Set boundary type and design type
+            for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = naca0012_mesh->begin_active(); cell != naca0012_mesh->end(); ++cell) {
+                for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+                    if (cell->face(face)->at_boundary()) {
+                        unsigned int current_id = cell->face(face)->boundary_id();
+                        if (current_id == 0 || current_id == 1 || current_id == 4 || current_id == 5) {
+                            cell->face(face)->set_boundary_id (1005); // farfield
+                        } else {
+                            cell->face(face)->set_boundary_id (1001); // wall
+                        }
+                    }
+                }
+            }
             // dg->set_high_order_grid(naca0012_mesh);
             // std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, param.flow_solver_param.max_poly_degree_for_adaptation, param.flow_solver_param.grid_degree, naca0012_mesh);
         //if (dim==3) {
@@ -1423,6 +1434,8 @@ else{
     std::cout << "Reading solution from file" << std::endl;
     read_solution_volume_nodes_from_file(dg);
 }
+
+    dg->output_results_vtk(9999);
 
     // Reset to initial_grid
     DealiiVector des_var_sim = dg->solution;
@@ -1626,7 +1639,7 @@ else{
     double tol = 0.0;
     std::cout << "Objective value= " << objective->value(*simulation_variables, *control_variables, tol) << std::endl;
 
-    dg->output_results_vtk(9999);
+    //dg->output_results_vtk(9999);
 
     double timing_start, timing_end;
     timing_start = MPI_Wtime();

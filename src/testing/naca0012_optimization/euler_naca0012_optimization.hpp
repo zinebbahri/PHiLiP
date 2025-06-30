@@ -190,7 +190,7 @@ protected:
     /// Actual test for which the number of design variables can be inputted.
     int optimize (const unsigned int nx_ffd, const unsigned int poly_degree, const unsigned int read_solution) const;
     // Function to explore design space of the OASPL reduction
-    void OASPL_design_space(const unsigned int nx_ffd) const;
+    void OASPL_design_space(const unsigned int nx_ffd, const unsigned int read_solution) const;
     // Function to write final solution to file
     void write_solution_volume_nodes_to_file(std::shared_ptr<DGBase<dim,double>> dg) const;
     //Function to read solution from file
