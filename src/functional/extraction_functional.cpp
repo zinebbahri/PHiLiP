@@ -85,17 +85,22 @@ template <int dim,int nstate,typename real,typename MeshType>
 void ExtractionFunctional<dim,nstate,real,MeshType>
 ::evaluate_extraction_start_point_normal_tangential_vector()
 {
-    const auto extraction_cell = dealii::GridTools::find_active_cell_around_point(*(this->dg->triangulation),this->start_point);
-    if(extraction_cell->at_boundary()){
+    const auto mapping = (*(this->dg->high_order_grid->mapping_fe_field));
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+    const auto extraction_cell = dealii::GridTools::find_active_cell_around_point(mapping_collection,this->dg->dof_handler,this->start_point);
+
+    // const auto extraction_cell = dealii::GridTools::find_active_cell_around_point(*(this->dg->triangulation),this->start_point);
+    // const auto extraction_cell = dealii::GridTools::find_active_cell_around_point(this->dg->dof_handler,this->start_point);
+    if(extraction_cell.first->at_boundary()){
         std::cout << "Captured cell that extraction point belongs to..." << std::endl;
         for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-            if (extraction_cell->face(face)->at_boundary()) {
-                this->start_point_normal_vector = extraction_cell->face(face)->get_manifold().normal_vector(extraction_cell->face(face),this->start_point);
+            if (extraction_cell.first->face(face)->at_boundary()) {
+                this->start_point_normal_vector = extraction_cell.first->face(face)->get_manifold().normal_vector(extraction_cell.first->face(face),this->start_point);
                 this->start_point_normal_vector*= -1.0;
                 dealii::Point<dim,real> start_point_neighbor = this->start_point;
                 // Todo: may have a better way to build a tangential vector respect to the surface geometry
                 start_point_neighbor[0] += 1e-3;
-                this->start_point_tangential_vector = extraction_cell->face(face)->get_manifold().get_tangent_vector(this->start_point,start_point_neighbor);
+                this->start_point_tangential_vector = extraction_cell.first->face(face)->get_manifold().get_tangent_vector(this->start_point,start_point_neighbor);
                 for(int d=0;d<dim;++d){
                     this->start_point_tangential_vector[d] /= this->start_point_tangential_vector.norm();
                 }
@@ -181,7 +186,7 @@ std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typ
                                                                                                           dof_handler,
                                                                                                           coord_of_total_sampling[i]);
     }
-
+std::cout<<"done"<<std::endl;
     return cell_index_and_ref_points_of_total_sampling;
 }
 //----------------------------------------------------------------

@@ -706,7 +706,7 @@ int ViscousNACAOptimization<dim,nstate>
 ::run_test () const
 {
     int test_error = 0;
-    int design_space = 0;
+    int design_space = 1;
     int read_solution = 1;
     std::filebuf filebuffer;
     if (this->mpi_rank == 2) filebuffer.open ("optimization.log", std::ios::out);
@@ -849,83 +849,83 @@ void ViscousNACAOptimization<dim,nstate>
 
                 outfile_init_FFD_coords << i_ctl << "  " << ffd.control_pts[i_ctl] << "\n";
                 if(i_ctl == 1) { 
-                    double dy = 0.0250632704918033;//0;//0.0436817;
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_1;//0;//0.0436817;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 2) { 
-                    double dy = -0.0163610081967213;//0;//-0.0285149;
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_2;//0;//-0.0285149;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 3) { 
-                    double dy = 0.00166123770491803;//0;//0.0028953;
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_3;//0.00166123770491803;//0;//0.0028953;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 4) { 
-                    double dy = 0.0106013852459016;//0;//0.0184767;
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_4;//0.0106013852459016;//0;//0.0184767;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 5) { 
-                    double dy = 0.00692936885245902;//0;//0.0120769;
+                else if(i_ctl == 5) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_5;//0.00692936885245902;//0;//0.0120769;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 6) { 
-                    double dy = 0;//0.00489680000000001/2;//0;//0.00489680000000001;
+                else if(i_ctl == 6) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_6;//0;//0.00489680000000001/2;//0;//0.00489680000000001;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 7) { 
-                    double dy = 0;//0.0222798/2;//0;//0.0222798;
+                else if(i_ctl == 7) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_7;//0;//0.0222798/2;//0;//0.0222798;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 8) { 
-                    double dy = 0;//0.0274644/2;//0;//0.0274644;
+                else if(i_ctl == 8) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_8;//0;//0.0274644/2;//0;//0.0274644;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 9) { 
-                    double dy = 0;//0.0143902/2;//0;//0.0143902;
+                else if(i_ctl == 9) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_9;//0;//0.0143902/2;//0;//0.0143902;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 10) { 
-                    double dy = 0;//-0.0036255/2;//0;//-0.0036255;
+                else if(i_ctl == 10) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_10;//0;//-0.0036255/2;//0;//-0.0036255;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 25) { 
-                    double dy = -0.0250298196721311;//0;//-0.0436234;//0;//-0.06107276;//-0.04798574;//0.0436234;
+                else if(i_ctl == 25) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_25;//-0.0250298196721311;//0;//-0.0436234;//0;//-0.06107276;//-0.04798574;//0.0436234;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 26) { 
-                    double dy =  -0.00176767213114754;//0.0162540573770492;//0;//0.0283285;// 0;//0.0396599;//0.03116135;//-0.0283285;
+                else if(i_ctl == 26) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_26;//0.0162540573770492;//0;//0.0283285;// 0;//0.0396599;//0.03116135;//-0.0283285;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 27) { 
-                    double dy =  -0.0107664016393443;//0;//-0.0030808;// 0;//-0.00431312;//-0.00338888;// 0.0030808;
+                else if(i_ctl == 27) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_27;//-0.00176767213114754;//0;//-0.0030808;// 0;//-0.00431312;//-0.00338888;// 0.0030808;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 28) { 
-                    double dy = -0.00709358196721312;//0;// -0.0187643;//0;//-0.02627002;//-0.02064073;// 0.0187643;
+                else if(i_ctl == 28) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_28;//-0.0107664016393443;//0;// -0.0187643;//0;//-0.02627002;//-0.02064073;// 0.0187643;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 29) { 
-                    double dy = 0;//-0.0123631;//0;//-0.01730834;//-0.01359941;// 0.0123631;
+                else if(i_ctl == 29) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_29;//-0.00709358196721312;//-0.0123631;//0;//-0.01730834;//-0.01359941;// 0.0123631;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 30) { 
-                    double dy = 0;//-0.00473950000000001/2;//0;//0.00663530000000001;//0.00521345000000001;// -0.00473950000000001;
+                else if(i_ctl == 30) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_30;//0;//-0.00473950000000001/2;//0;//0.00663530000000001;//0.00521345000000001;// -0.00473950000000001;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 31) { 
-                    double dy = 0;//-0.0220138/2;//0;//0.03081932;//0.02421518;//-0.0220138;
+                else if(i_ctl == 31) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_31;//0;//-0.0220138/2;//0;//0.03081932;//0.02421518;//-0.0220138;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 32) { 
-                    double dy = 0;//-0.0267469/2;//0;//0.03744566;//0.02942159;//-0.0267469;
+                else if(i_ctl == 32) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_32;//0;//-0.0267469/2;//0;//0.03744566;//0.02942159;//-0.0267469;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 33) { 
-                    double dy = 0;//-0.0134475/2;//0;//0.0188265;//0.01479225;// -0.0134475;
+                else if(i_ctl == 33) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_33;//0;//-0.0134475/2;//0;//0.0188265;//0.01479225;// -0.0134475;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 34) { 
-                    double dy = 0;//0.0039125/2;//0;//-0.0054775; //-0.00430375;//0.0039125;
+                else if(i_ctl == 34) {
+                    double dy = param.boundary_layer_extraction_param.dy_FFD_34;//0;//0.0039125/2;//0;//-0.0054775; //-0.00430375;//0.0039125;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 outfile_final_FFD_coords << ffd.control_pts[i_ctl] << "\n";
@@ -937,7 +937,7 @@ void ViscousNACAOptimization<dim,nstate>
             //const double target_AoA = 0.5;
             //const double pi = atan(1.0) * 4.0;
             //param_target.euler_param.angle_of_attack = target_AoA * pi/170.0;
-            // std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param_target, 1, grid);
+            std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param, 1, grid);
 
             // using REF grids
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim>  ("naca0012_hopw_ref3.msh", 1);
@@ -982,15 +982,30 @@ void ViscousNACAOptimization<dim,nstate>
                     }
                 }
             }
-            const int poly_degree = 1;
-            std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, param.flow_solver_param.max_poly_degree_for_adaptation, param.flow_solver_param.grid_degree, naca0012_mesh);
-            // dg_target->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
+            // const int poly_degree = 1;
+            // std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, param.flow_solver_param.max_poly_degree_for_adaptation, param.flow_solver_param.grid_degree, naca0012_mesh);
+            dg_target->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(1, naca0012_mesh));
+
+            //                 // Set boundary type and design type
+            // for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = dg_target->high_order_grid->triangulation->begin_active(); cell != dg_target->high_order_grid->triangulation->end(); ++cell) {
+            //     for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            //         if (cell->face(face)->at_boundary()) {
+            //             unsigned int current_id = cell->face(face)->boundary_id();
+            //             if (current_id == 0 || current_id == 1 || current_id == 4 || current_id == 5) {
+            //                 cell->face(face)->set_boundary_id (1005); // farfield
+            //             } else {
+            //                 cell->face(face)->set_boundary_id (1001); // wall
+            //             }
+            //         }
+            //     }
+            // }
 
             ffd.deform_mesh (*(dg_target->high_order_grid));
+            // dg_target->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(1, dg_target->high_order_grid->triangulation));
             ffd.output_ffd_vtu(2025);
+            dg_target->allocate_system ();
 
             if(!read_solution){
-                dg_target->allocate_system ();
                 //  dg_target->allocate_system (true,true,false);
                 dealii::VectorTools::interpolate(dg_target->dof_handler, initial_conditions, dg_target->solution);
                 // dg_target->solution.update_ghost_values();
@@ -1034,7 +1049,7 @@ void ViscousNACAOptimization<dim,nstate>
         }
         int number_of_sampling = param.boundary_layer_extraction_param.number_of_sampling;
 
-        //Update location of extraction point
+       // Update location of extraction point
         dealii::Point<dim,double> new_extraction_point = ffd.new_point_location(initial_extraction_point);
 
         std::cout << "New extraction point location: " << new_extraction_point[0] << " , " << new_extraction_point[1] << std::endl;
@@ -1048,10 +1063,14 @@ void ViscousNACAOptimization<dim,nstate>
 
         AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg_target,boundary_layer_extraction,observer_coord_ref);
 
-        std::cout << " Current lift = " << lift_functional.evaluate_functional()
-                << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
-                  << ". Current total drag = " << total_drag_functional.evaluate_functional()
-                << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
+        // Testing dIdXd
+        std::shared_ptr < AmietModelFunctional<dim,nstate,double,Triangulation> > ptr_acoustic_functional = std::make_shared <AmietModelFunctional<dim,nstate,double,Triangulation>>(acoustic_functional);
+        AcousticAdjoint <dim,nstate,double,Triangulation> amiet_adjoint(dg_target,ptr_acoustic_functional);
+        this->pcout << "Computing function derivative wrt FFD nodes..." << std::endl;
+        amiet_adjoint.compute_dIdXd(dg_target->high_order_grid);
+        this->pcout << "Computation is done..." << std::endl;
+
+        std::cout << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
                 << std::endl;
     
     return;
@@ -1393,7 +1412,9 @@ int ViscousNACAOptimization<dim,nstate>
             // std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, param.flow_solver_param.max_poly_degree_for_adaptation, param.flow_solver_param.grid_degree, naca0012_mesh);
         //if (dim==3) {
         //    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_wing_unstructured_cutoff.msh", true, 1, false);
-           dg->set_high_order_grid(naca0012_mesh);
+        //    dg->set_high_order_grid(naca0012_mesh);
+        dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(1, naca0012_mesh));
+
         //}
     }
 
