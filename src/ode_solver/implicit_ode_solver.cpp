@@ -61,6 +61,20 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
     this->dg->solution.add(step_length, this->solution_update);
     this->dg->assemble_residual ();
     double new_residual = this->dg->get_residual_l2norm();
+
+      while(std::isnan(new_residual)){
+         this->pcout << "Found nan value, reducing step length and recomputing." << std::endl;
+         double step_reduction_bis = 0.25;
+         step_length = step_length * step_reduction_bis;
+         this->dg->solution.add(step_length, this->solution_update);
+          this->dg->solution.add(step_length, this->solution_update);
+          this->dg->assemble_residual ();
+          double new_residual = this->dg->get_residual_l2norm();
+          this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+     }
+     this->pcout << "Exited nan loop" << std::endl;
+
+
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
 
     int iline = 0;

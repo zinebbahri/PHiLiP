@@ -707,7 +707,7 @@ int ViscousNACAOptimization<dim,nstate>
 {
     int test_error = 0;
     int design_space = 1;
-    int read_solution = 1;
+    int read_solution = 0;
     std::filebuf filebuffer;
     if (this->mpi_rank == 2) filebuffer.open ("optimization.log", std::ios::out);
     if (this->mpi_rank == 0) filebuffer.close();

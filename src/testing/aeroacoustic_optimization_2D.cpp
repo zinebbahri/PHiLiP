@@ -786,6 +786,7 @@ int AeroAcousticOptimization2D<dim,nstate>
 {
     int test_error = 0;
     int design_space = 1;
+    int read_solution = 0;
     std::filebuf filebuffer;
     if (this->mpi_rank == 2) filebuffer.open ("optimization.log", std::ios::out);
     if (this->mpi_rank == 0) filebuffer.close();
@@ -795,16 +796,16 @@ int AeroAcousticOptimization2D<dim,nstate>
             // const unsigned int nx_ffd = n_des_var + 2;
             const unsigned int nx_ffd = 10 + 2;
             if (design_space == 0)
-            test_error += optimize(nx_ffd, poly_degree/*, this->header_dg, this->ode_solver, this->header_sub_dg, this->sub_ode_solver*/);
+            test_error += optimize(nx_ffd, poly_degree, read_solution);
             else
-            OASPL_design_space(nx_ffd);
+            OASPL_design_space(nx_ffd,read_solution);
         // }
     // }
     return test_error;
 }
 
 template<int dim, int nstate>
-void AeroAcousticOptimization2D<dim,nstate>::OASPL_design_space(const unsigned int nx_ffd) const
+void AeroAcousticOptimization2D<dim,nstate>::OASPL_design_space(const unsigned int nx_ffd, const unsigned int read_solution) const
 {
 
     using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
@@ -893,83 +894,83 @@ void AeroAcousticOptimization2D<dim,nstate>::OASPL_design_space(const unsigned i
 
                 outfile_init_FFD_coords << i_ctl << "  " << ffd.control_pts[i_ctl] << "\n";
                 if(i_ctl == 1) { 
-                    double dy = 0.0250632704918033;//0.0300759245901639;//0.0436817;
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_1;//0;//0.0436817;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 2) { 
-                    double dy = -0.0163610081967213;//-0.0196332098360656;//-0.0285149;
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_2;//0;//-0.0285149;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 3) { 
-                    double dy = 0.00166123770491803;//0.00199348524590164;//0.0028953;
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_3;//0.00166123770491803;//0;//0.0028953;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 else if(i_ctl == 4) { 
-                    double dy = 0.0106013852459016;//0.012721662295082;//0.0184767;
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_4;//0.0106013852459016;//0;//0.0184767;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 5) { 
-                    double dy = 0.00692936885245902;//0.00831524262295082;//0.0120769;
+                else if(i_ctl == 5) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_5;//0.00692936885245902;//0;//0.0120769;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 6) { 
-                    double dy = 0;//-0.00337156721311476;//0.00489680000000001/2;//0;//0.00489680000000001;
+                else if(i_ctl == 6) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_6;//0;//0.00489680000000001/2;//0;//0.00489680000000001;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 7) { 
-                    double dy = 0;//-0.0153401901639344;//0.0222798/2;//0;//0.0222798;
+                else if(i_ctl == 7) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_7;//0;//0.0222798/2;//0;//0.0222798;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 8) { 
-                    double dy = 0;//-0.0189099147540984;//0.0274644/2;//0;//0.0274644;
+                else if(i_ctl == 8) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_8;//0;//0.0274644/2;//0;//0.0274644;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 9) { 
-                    double dy = 0;//-0.00990800655737705;//0.0143902/2;//0;//0.0143902;
+                else if(i_ctl == 9) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_9;//0;//0.0143902/2;//0;//0.0143902;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 10) { 
-                    double dy = 0;//0.00249624590163934;//-0.0036255/2;//0;//-0.0036255;
+                else if(i_ctl == 10) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_10;//0;//-0.0036255/2;//0;//-0.0036255;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 25) { 
-                    double dy = -0.0250298196721311;//-0.0300357836065574;//-0.0436234;//0;//-0.06107276;//-0.04798574;//0.0436234;
+                else if(i_ctl == 25) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_25;//-0.0250298196721311;//0;//-0.0436234;//0;//-0.06107276;//-0.04798574;//0.0436234;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 26) { 
-                    double dy =  0.0162540573770492;//0.019504868852459;//0.0283285;// 0;//0.0396599;//0.03116135;//-0.0283285;
+                else if(i_ctl == 26) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_26;//0.0162540573770492;//0;//0.0283285;// 0;//0.0396599;//0.03116135;//-0.0283285;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 27) { 
-                    double dy =  -0.00176767213114754;//-0.00212120655737705;//-0.0030808;// 0;//-0.00431312;//-0.00338888;// 0.0030808;
+                else if(i_ctl == 27) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_27;//-0.00176767213114754;//0;//-0.0030808;// 0;//-0.00431312;//-0.00338888;// 0.0030808;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 28) { 
-                    double dy =  -0.0107664016393443;//-0.0129196819672131;//-0.0187643;//0;//-0.02627002;//-0.02064073;// 0.0187643;
+                else if(i_ctl == 28) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_28;//-0.0107664016393443;//0;// -0.0187643;//0;//-0.02627002;//-0.02064073;// 0.0187643;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 29) { 
-                    double dy = -0.00709358196721312;//-0.00851229836065574;//-0.0123631;//0;//-0.01730834;//-0.01359941;// 0.0123631;
+                else if(i_ctl == 29) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_29;//-0.00709358196721312;//-0.0123631;//0;//-0.01730834;//-0.01359941;// 0.0123631;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 30) { 
-                    double dy = 0;//0.00326326229508197;//-0.00473950000000001/2;//0;//0.00663530000000001;//0.00521345000000001;// -0.00473950000000001;
+                else if(i_ctl == 30) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_30;//0;//-0.00473950000000001/2;//0;//0.00663530000000001;//0.00521345000000001;// -0.00473950000000001;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 31) { 
-                    double dy = 0;//0.0151570426229508;//-0.0220138/2;//0;//0.03081932;//0.02421518;//-0.0220138;
+                else if(i_ctl == 31) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_31;//0;//-0.0220138/2;//0;//0.03081932;//0.02421518;//-0.0220138;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 32) { 
-                    double dy = 0;//0.0184158983606557;//-0.0267469/2;//0;//0.03744566;//0.02942159;//-0.0267469;
+                else if(i_ctl == 32) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_32;//0;//-0.0267469/2;//0;//0.03744566;//0.02942159;//-0.0267469;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 33) { 
-                    double dy = 0;//0.00925893442622951;//-0.0134475/2;//0;//0.0188265;//0.01479225;// -0.0134475;
+                else if(i_ctl == 33) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_33;//0;//-0.0134475/2;//0;//0.0188265;//0.01479225;// -0.0134475;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
-                else if(i_ctl == 34) { 
-                    double dy = 0;//-0.00269385245901639;//0.0039125/2;//0;//-0.0054775; //-0.00430375;//0.0039125;
+                else if(i_ctl == 34) {
+                    double dy = all_param.boundary_layer_extraction_param.dy_FFD_34;//0;//0.0039125/2;//0;//-0.0054775; //-0.00430375;//0.0039125;
                     ffd.control_pts[i_ctl][1] += dy;
                     }
                 outfile_final_FFD_coords << ffd.control_pts[i_ctl] << "\n";
@@ -977,6 +978,9 @@ void AeroAcousticOptimization2D<dim,nstate>::OASPL_design_space(const unsigned i
             
             outfile_init_FFD_coords.close();
             outfile_final_FFD_coords.close();
+    
+    std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, &sub_all_param, poly_degree,flow_solver_param.max_poly_degree_for_adaptation, grid_degree, grid);
+    std::shared_ptr < DGBase<dim, double> > sub_dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, sub_poly_degree, sub_flow_solver_param.max_poly_degree_for_adaptation, sub_grid_degree, grid);
 
     // using dealii Grid Generator
     std::shared_ptr<Triangulation> naca0012_mesh = std::make_shared<Triangulation> (
@@ -1018,8 +1022,10 @@ void AeroAcousticOptimization2D<dim,nstate>::OASPL_design_space(const unsigned i
     }
     const int poly_degree = 1;
 
-std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, &sub_all_param, poly_degree,flow_solver_param.max_poly_degree_for_adaptation, grid_degree, naca0012_mesh);
-std::shared_ptr < DGBase<dim, double> > sub_dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, sub_poly_degree, sub_flow_solver_param.max_poly_degree_for_adaptation, sub_grid_degree, naca0012_mesh);
+// std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, &sub_all_param, poly_degree,flow_solver_param.max_poly_degree_for_adaptation, grid_degree, naca0012_mesh);
+// std::shared_ptr < DGBase<dim, double> > sub_dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, sub_poly_degree, sub_flow_solver_param.max_poly_degree_for_adaptation, sub_grid_degree, naca0012_mesh);
+dg_target->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(1, naca0012_mesh));
+sub_dg_target->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(1, naca0012_mesh));
 
 ffd.deform_mesh (*(dg_target->high_order_grid));
 ffd.deform_mesh (*(sub_dg_target->high_order_grid));
@@ -1034,73 +1040,77 @@ ffd.output_ffd_vtu(2025);
         dg_target->allocate_system(false,false,false);
     }
 
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_target);
+    if(!read_solution){
+        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_target);
+        // Initialize solution
+        SetInitialCondition<dim,nstate,double>::set_initial_condition(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(&all_param), dg_target, &all_param);
+        dg_target->solution.update_ghost_values();
+        dg_target->sub_solution.update_ghost_values();    
+        // Allocate ODE solver after initializing DG
+        ode_solver->allocate_ode_system();
 
+        // sub flow solver set up
+        sub_dg_target->allocate_system();
+        std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg_target);
+        pcout << "Initializing sub solution with initial condition function... " << std::flush;
+        SetInitialCondition<dim,1,double>::set_initial_condition(InitialConditionFactory<dim, 1, double>::create_InitialConditionFunction(&sub_all_param), sub_dg_target, &sub_all_param);
 
-    // Initialize solution
-    SetInitialCondition<dim,nstate,double>::set_initial_condition(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(&all_param), dg_target, &all_param);
+        sub_dg_target->solution.update_ghost_values();
+        pcout << "done." << std::endl;
+        sub_ode_solver->allocate_ode_system();
 
-    dg_target->solution.update_ghost_values();
-    dg_target->sub_solution.update_ghost_values();
-    
-    // Allocate ODE solver after initializing DG
-    ode_solver->allocate_ode_system();
-
-    
-    // sub flow solver set up
-    sub_dg_target->allocate_system();
-
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg_target);
-
-    pcout << "Initializing sub solution with initial condition function... " << std::flush;
-    SetInitialCondition<dim,1,double>::set_initial_condition(InitialConditionFactory<dim, 1, double>::create_InitialConditionFunction(&sub_all_param), sub_dg_target, &sub_all_param);
-
-    sub_dg_target->solution.update_ghost_values();
-    pcout << "done." << std::endl;
-    sub_ode_solver->allocate_ode_system();
-
-// Solve sub and main flow solvers, steady state
-        //----------------------------------------------------
-        // Steady-state solution
-        //----------------------------------------------------
-        using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-        if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver)) {
-            ode_solver->initialize_steady_polynomial_ramping(poly_degree);
-        }
-
-        if(sub_dg_target){
-            pcout << "Start calculation for the sub ODE solver..." << std::endl;
-            sub_ode_solver->steady_state();
-            // sub_flow_solver_case->steady_state_postprocessing(sub_dg);
-            pcout << "End calculation for the sub ODE solver..." << std::endl;
-
-            if(sub_dg_target->max_degree!=dg_target->max_degree){
-                pcout << "Detect different polynomial degree between sub dg (poly_degree = " << sub_dg_target->max_degree << ") and main dg (poly_degree = " << dg_target->max_degree << ")..." << std::endl;
-                pcout << "Interpolate solution from current polynomial degree " << sub_dg_target->max_degree << " to desired polynomial degree " << dg_target->max_degree << " ..." << std::endl;
-                sub_dg_target->output_results_vtk(8888);
-                sub_ode_solver->interpolate_solution_polynomial_degree(dg_target->max_degree);
-                sub_dg_target->output_results_vtk(9999);
+        // Solve sub and main flow solvers, steady state
+            //----------------------------------------------------
+            // Steady-state solution
+            //----------------------------------------------------
+            using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+            if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver)) {
+                ode_solver->initialize_steady_polynomial_ramping(poly_degree);
             }
 
-            pcout << "Transfer the solution from sub dg to main dg..." << std::endl;
-            dg_target->import_sub_solution(sub_dg_target);
-        }else{
-            pcout << "No calculation for the sub ODE solver..." << std::endl;
-        }
+            if(sub_dg_target){
+                pcout << "Start calculation for the sub ODE solver..." << std::endl;
+                sub_ode_solver->steady_state();
+                // sub_flow_solver_case->steady_state_postprocessing(sub_dg);
+                pcout << "End calculation for the sub ODE solver..." << std::endl;
 
-        pcout << "Start calculation for the main ODE solver..." << std::endl;
-        
-        ode_solver->steady_state();
-        // flow_solver_case->steady_state_postprocessing(dg);
-        
-        const bool use_isotropic_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0) 
-                                        && (all_param.mesh_adaptation_param.mesh_adaptation_type != Parameters::MeshAdaptationParam::MeshAdaptationType::anisotropic_adaptation);
-        
-        if(use_isotropic_mesh_adaptation)
-        {
-            perform_steady_state_mesh_adaptation(dg_target, ode_solver);
-        }
+                if(sub_dg_target->max_degree!=dg_target->max_degree){
+                    pcout << "Detect different polynomial degree between sub dg (poly_degree = " << sub_dg_target->max_degree << ") and main dg (poly_degree = " << dg_target->max_degree << ")..." << std::endl;
+                    pcout << "Interpolate solution from current polynomial degree " << sub_dg_target->max_degree << " to desired polynomial degree " << dg_target->max_degree << " ..." << std::endl;
+                    sub_dg_target->output_results_vtk(8888);
+                    sub_ode_solver->interpolate_solution_polynomial_degree(dg_target->max_degree);
+                    sub_dg_target->output_results_vtk(9999);
+                    std::cout << "Sending to write sub solution to file" << std::endl;
+                    write_solution_volume_nodes_to_file(sub_dg_target);
+                }
 
+                pcout << "Transfer the solution from sub dg to main dg..." << std::endl;
+                dg_target->import_sub_solution(sub_dg_target);
+            }else{
+                pcout << "No calculation for the sub ODE solver..." << std::endl;
+            }
+
+            pcout << "Start calculation for the main ODE solver..." << std::endl;
+            
+            ode_solver->steady_state();
+            // flow_solver_case->steady_state_postprocessing(dg);
+            
+            const bool use_isotropic_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0) 
+                                            && (all_param.mesh_adaptation_param.mesh_adaptation_type != Parameters::MeshAdaptationParam::MeshAdaptationType::anisotropic_adaptation);
+            
+            if(use_isotropic_mesh_adaptation)
+            {
+                perform_steady_state_mesh_adaptation(dg_target, ode_solver);
+            }
+            std::cout << "Sending to write solution to file" << std::endl;
+            write_solution_volume_nodes_to_file(dg_target);
+    }
+    else{
+        std::cout << "Reading solution from file" << std::endl;
+        read_solution_volume_nodes_from_file(dg_target);
+    }
+            dg_target->output_results_vtk(9998);
+            target_solution_ffd = dg_target->solution;
 
         //Compute lift, total drag, pressure drag, and acoustic noise
         LiftDragFunctional<dim,nstate,double> lift_functional( dg_target, LiftDragFunctional<dim,nstate,double>::Functional_types::lift);
@@ -1142,10 +1152,80 @@ ffd.output_ffd_vtu(2025);
 }
 
 template<int dim, int nstate>
+void AeroAcousticOptimization2D<dim,nstate>::write_solution_volume_nodes_to_file(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    std::cout << "Writing solution to file" << std::endl;
+    const int n_cells = dg->triangulation->n_global_active_cells();
+    const int poly_degree = dg->get_min_fe_degree();
+    const std::string filename_soln = 
+                    "solution_" + std::to_string(this->mpi_rank) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+    const std::string filename_volnodes = 
+                    "volnodes_" + std::to_string(this->mpi_rank) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+    const dealii::IndexSet &soln_range = dg->solution.get_partitioner()->locally_owned_range();
+    const dealii::IndexSet &vol_range = dg->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
+
+    std::ofstream outfile_soln(filename_soln);
+    std::ofstream outfile_volnodes(filename_volnodes);
+
+    if( (!outfile_soln.is_open()) || (!outfile_volnodes.is_open()))
+    {
+        std::cout<<"Could not open file. Aborting.."<<std::endl;
+        std::abort();
+    }
+
+    for(const auto &isol : soln_range)
+    {
+        outfile_soln<<std::setprecision(16)<<dg->solution(isol)<<"\n";
+    }
+    for(const auto &ivol : vol_range)
+    {
+        outfile_volnodes<<std::setprecision(16)<<dg->high_order_grid->volume_nodes(ivol)<<"\n";
+    }
+    outfile_soln.close();
+    outfile_volnodes.close();
+}
+
+
+template<int dim, int nstate>
+void AeroAcousticOptimization2D<dim,nstate>::read_solution_volume_nodes_from_file(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    const int n_cells = dg->triangulation->n_global_active_cells();
+    const int poly_degree = dg->get_min_fe_degree();
+    const std::string filename_soln = 
+                    "solution_" + std::to_string(this->mpi_rank) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+    const std::string filename_volnodes = 
+                    "volnodes_" + std::to_string(this->mpi_rank) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+    const dealii::IndexSet &soln_range = dg->solution.get_partitioner()->locally_owned_range();
+    const dealii::IndexSet &vol_range = dg->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
+
+    std::ifstream infile_soln(filename_soln);
+    std::ifstream infile_volnodes(filename_volnodes);
+
+    if( (!infile_soln.is_open()) || (!infile_volnodes.is_open()))
+    {
+        std::cout<<"Could not open file. Aborting.."<<std::endl;
+        std::abort();
+    }
+
+    for(const auto &isol : soln_range)
+    {
+        infile_soln>>dg->solution(isol);
+    }
+    for(const auto &ivol : vol_range)
+    {
+        infile_volnodes>>dg->high_order_grid->volume_nodes(ivol);
+    }
+    infile_soln.close();
+    infile_volnodes.close();
+    dg->high_order_grid->volume_nodes.update_ghost_values();
+    dg->solution.update_ghost_values();
+}
+
+
+
+template<int dim, int nstate>
 int AeroAcousticOptimization2D<dim,nstate>
-::optimize (const unsigned int nx_ffd, const unsigned int level/*,
-            std::shared_ptr<DGBase<dim, double>> dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver,
-            std::shared_ptr<DGBase<dim, double>> sub_dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver*/) const
+::optimize (const unsigned int nx_ffd, const unsigned int level, const unsigned read_solution) const
 {
     int test_error = 0;
 
@@ -1382,7 +1462,8 @@ int AeroAcousticOptimization2D<dim,nstate>
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref2.msh", 1);
             // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012_hopw_ref4.msh", 1);
             //naca0012_mesh->refine_global();
-
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, &sub_all_param, poly_degree,flow_solver_param.max_poly_degree_for_adaptation, grid_degree, grid);
+        std::shared_ptr < DGBase<dim, double> > sub_dg = DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, sub_poly_degree, sub_flow_solver_param.max_poly_degree_for_adaptation, sub_grid_degree, grid);
             // using dealii Grid Generator
             std::shared_ptr<Triangulation> naca0012_mesh = std::make_shared<Triangulation> (
         #if dim!=1
@@ -1423,8 +1504,11 @@ int AeroAcousticOptimization2D<dim,nstate>
             }
             const int poly_degree = level;
 
-   std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, &sub_all_param, poly_degree,flow_solver_param.max_poly_degree_for_adaptation, grid_degree, naca0012_mesh);
-   std::shared_ptr < DGBase<dim, double> > sub_dg = DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, sub_poly_degree, sub_flow_solver_param.max_poly_degree_for_adaptation, sub_grid_degree, naca0012_mesh);
+//    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, &sub_all_param, poly_degree,flow_solver_param.max_poly_degree_for_adaptation, grid_degree, naca0012_mesh);
+//    std::shared_ptr < DGBase<dim, double> > sub_dg = DGFactory<dim,double>::create_discontinuous_galerkin(&sub_all_param, sub_poly_degree, sub_flow_solver_param.max_poly_degree_for_adaptation, sub_grid_degree, naca0012_mesh);
+
+        dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(1, naca0012_mesh));
+        sub_dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(1, naca0012_mesh));
             // dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
             // sub_dg->set_high_order_grid(std::make_shared<HighOrderGrid<dim,double,dealii::parallel::distributed::Triangulation<2>>>(4, naca0012_mesh));
         // }
@@ -1443,136 +1527,137 @@ int AeroAcousticOptimization2D<dim,nstate>
         dg->allocate_system(false,false,false);
     }
 
-    // if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
-    //     std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
-    //     /*std::shared_ptr<ODE::ODESolverBase<dim, double>>*/ ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
-    // }
-    // else{
+    if(!read_solution){
         std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-    // }
-    // flow_solver_case->display_flow_solver_setup(dg);
-
-    if(flow_solver_param.restart_computation_from_file == true) {
-        if(dim == 1) {
-            pcout << "Error: restart_computation_from_file is not possible for 1D. Set to false." << std::endl;
-            std::abort();
-        }
-
-        if (flow_solver_param.steady_state == true) {
-            pcout << "Error: Restart capability has not been fully implemented / tested for steady state computations." << std::endl;
-            std::abort();
-        }
-
-        // Initialize solution from restart file
-        pcout << "Initializing solution from restart file..." << std::flush;
-        const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
-    #if PHILIP_DIM>1
-        dg->triangulation->load(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
-        
-        // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
-        // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
-        dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
-        solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
-        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
-        solution_transfer.deserialize(solution_no_ghost);
-        dg->solution = solution_no_ghost; //< assignment
-        dg->sub_solution = solution_no_ghost; //< assignment
-#endif
-        pcout << "done." << std::endl;
-    } else {
-        // Initialize solution
-        SetInitialCondition<dim,nstate,double>::set_initial_condition(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(&all_param), dg, &all_param);
-    }
-    dg->solution.update_ghost_values();
-    dg->sub_solution.update_ghost_values();
-    
-    // Allocate ODE solver after initializing DG
-    ode_solver->allocate_ode_system();
-
-    
- // sub flow solver set up
-    sub_dg->allocate_system();
-
-    // if(sub_ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || sub_ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
-    //     std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(sub_dg);
-    //     /*std::shared_ptr<ODE::ODESolverBase<dim, double>>*/ sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg, pod);
-    // }
-    // else{
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg);
-    // }
-
-    pcout << "Initializing sub solution with initial condition function... " << std::flush;
-    SetInitialCondition<dim,1,double>::set_initial_condition(InitialConditionFactory<dim, 1, double>::create_InitialConditionFunction(&sub_all_param), sub_dg, &sub_all_param);
-
-    sub_dg->solution.update_ghost_values();
-    pcout << "done." << std::endl;
-    sub_ode_solver->allocate_ode_system();
-
-
-
-#ifndef CREATE_RST
-    DealiiVector target_solution;
-    if (OptimizationProblemType::inverse_pressure_design == optimization_problem_type) {
-        const std::string restart_filename_without_extension = get_restart_filename_without_extension(99299);
-        dg->triangulation->load(std::string("./") + restart_filename_without_extension);
-        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
-
-        dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
-        solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
-        solution_transfer.deserialize(solution_no_ghost);
-
-        dg->solution = solution_no_ghost; //< assignment
-        dg->solution.update_ghost_values();
-        target_solution = dg->solution;
-    }
-    // TargetWallPressure<dim,nstate,double> target_wall_pressure_functional(dg, target_solution);
-    // TargetWallPressure<dim,dim+2,double> target_wall_pressure_functional(dg, target_solution);
-#endif
-
-// Solve sub and main flow solvers, steady state
-{
-        //----------------------------------------------------
-        // Steady-state solution
-        //----------------------------------------------------
-        using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-        if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver)) {
-            ode_solver->initialize_steady_polynomial_ramping(poly_degree);
-        }
-
-        if(sub_dg){
-            pcout << "Start calculation for the sub ODE solver..." << std::endl;
-            sub_ode_solver->steady_state();
-            // sub_flow_solver_case->steady_state_postprocessing(sub_dg);
-            pcout << "End calculation for the sub ODE solver..." << std::endl;
-
-            if(sub_dg->max_degree!=dg->max_degree){
-                pcout << "Detect different polynomial degree between sub dg (poly_degree = " << sub_dg->max_degree << ") and main dg (poly_degree = " << dg->max_degree << ")..." << std::endl;
-                pcout << "Interpolate solution from current polynomial degree " << sub_dg->max_degree << " to desired polynomial degree " << dg->max_degree << " ..." << std::endl;
-                sub_dg->output_results_vtk(8888);
-                sub_ode_solver->interpolate_solution_polynomial_degree(dg->max_degree);
-                sub_dg->output_results_vtk(9999);
+        if(flow_solver_param.restart_computation_from_file == true) {
+            if(dim == 1) {
+                pcout << "Error: restart_computation_from_file is not possible for 1D. Set to false." << std::endl;
+                std::abort();
             }
 
-            pcout << "Transfer the solution from sub dg to main dg..." << std::endl;
-            dg->import_sub_solution(sub_dg);
-        }else{
-            pcout << "No calculation for the sub ODE solver..." << std::endl;
-        }
+            if (flow_solver_param.steady_state == true) {
+                pcout << "Error: Restart capability has not been fully implemented / tested for steady state computations." << std::endl;
+                std::abort();
+            }
 
-        pcout << "Start calculation for the main ODE solver..." << std::endl;
-        
-        ode_solver->steady_state();
-        // flow_solver_case->steady_state_postprocessing(dg);
-        
-        const bool use_isotropic_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0) 
-                                        && (all_param.mesh_adaptation_param.mesh_adaptation_type != Parameters::MeshAdaptationParam::MeshAdaptationType::anisotropic_adaptation);
-        
-        if(use_isotropic_mesh_adaptation)
-        {
-            perform_steady_state_mesh_adaptation(dg, ode_solver);
+            // Initialize solution from restart file
+            pcout << "Initializing solution from restart file..." << std::flush;
+            const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
+        #if PHILIP_DIM>1
+            dg->triangulation->load(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
+            
+            // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
+            // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
+            dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+            solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
+            dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+            solution_transfer.deserialize(solution_no_ghost);
+            dg->solution = solution_no_ghost; //< assignment
+            dg->sub_solution = solution_no_ghost; //< assignment
+    #endif
+            pcout << "done." << std::endl;
+        } else {
+            // Initialize solution
+            SetInitialCondition<dim,nstate,double>::set_initial_condition(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(&all_param), dg, &all_param);
         }
+        dg->solution.update_ghost_values();
+        dg->sub_solution.update_ghost_values();
 
-}
+        // Allocate ODE solver after initializing DG
+        ode_solver->allocate_ode_system();
+    
+        // sub flow solver set up
+        sub_dg->allocate_system();
+
+        // if(sub_ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || sub_ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
+        //     std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(sub_dg);
+        //     /*std::shared_ptr<ODE::ODESolverBase<dim, double>>*/ sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg, pod);
+        // }
+        // else{
+            std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(sub_dg);
+        // }
+
+        pcout << "Initializing sub solution with initial condition function... " << std::flush;
+        SetInitialCondition<dim,1,double>::set_initial_condition(InitialConditionFactory<dim, 1, double>::create_InitialConditionFunction(&sub_all_param), sub_dg, &sub_all_param);
+
+        sub_dg->solution.update_ghost_values();
+        pcout << "done." << std::endl;
+        sub_ode_solver->allocate_ode_system();
+
+    #ifndef CREATE_RST
+        DealiiVector target_solution;
+        if (OptimizationProblemType::inverse_pressure_design == optimization_problem_type) {
+            const std::string restart_filename_without_extension = get_restart_filename_without_extension(99299);
+            dg->triangulation->load(std::string("./") + restart_filename_without_extension);
+            dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+
+            dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
+            solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
+            solution_transfer.deserialize(solution_no_ghost);
+
+            dg->solution = solution_no_ghost; //< assignment
+            dg->solution.update_ghost_values();
+            target_solution = dg->solution;
+        }
+        // TargetWallPressure<dim,nstate,double> target_wall_pressure_functional(dg, target_solution);
+        // TargetWallPressure<dim,dim+2,double> target_wall_pressure_functional(dg, target_solution);
+    #endif
+
+    // Solve sub and main flow solvers, steady state
+    {
+            //----------------------------------------------------
+            // Steady-state solution
+            //----------------------------------------------------
+            using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+            if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver)) {
+                ode_solver->initialize_steady_polynomial_ramping(poly_degree);
+            }
+
+            if(sub_dg){
+                pcout << "Start calculation for the sub ODE solver..." << std::endl;
+                sub_ode_solver->steady_state();
+                // sub_flow_solver_case->steady_state_postprocessing(sub_dg);
+                pcout << "End calculation for the sub ODE solver..." << std::endl;
+
+                if(sub_dg->max_degree!=dg->max_degree){
+                    pcout << "Detect different polynomial degree between sub dg (poly_degree = " << sub_dg->max_degree << ") and main dg (poly_degree = " << dg->max_degree << ")..." << std::endl;
+                    pcout << "Interpolate solution from current polynomial degree " << sub_dg->max_degree << " to desired polynomial degree " << dg->max_degree << " ..." << std::endl;
+                    sub_dg->output_results_vtk(8888);
+                    sub_ode_solver->interpolate_solution_polynomial_degree(dg->max_degree);
+                    sub_dg->output_results_vtk(9999);
+                    std::cout << "Sending to write sub solution to file" << std::endl;
+                    write_solution_volume_nodes_to_file(sub_dg);
+                }
+
+                pcout << "Transfer the solution from sub dg to main dg..." << std::endl;
+                dg->import_sub_solution(sub_dg);
+            }else{
+                pcout << "No calculation for the sub ODE solver..." << std::endl;
+            }
+
+            pcout << "Start calculation for the main ODE solver..." << std::endl;
+            
+            ode_solver->steady_state();
+            // flow_solver_case->steady_state_postprocessing(dg);
+            
+            const bool use_isotropic_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0) 
+                                            && (all_param.mesh_adaptation_param.mesh_adaptation_type != Parameters::MeshAdaptationParam::MeshAdaptationType::anisotropic_adaptation);
+            
+            if(use_isotropic_mesh_adaptation)
+            {
+                perform_steady_state_mesh_adaptation(dg, ode_solver);
+            }
+            std::cout << "Sending to write solution to file" << std::endl;
+            write_solution_volume_nodes_to_file(dg);
+
+    }
+    }
+    else{
+        std::cout << "Reading solution from file" << std::endl;
+        read_solution_volume_nodes_from_file(dg);
+    }
+
+    dg->output_results_vtk(9999);
 
     /// Reset to initial_grid
     DealiiVector des_var_sim = dg->solution;
@@ -1608,21 +1693,20 @@ int AeroAcousticOptimization2D<dim,nstate>
 
     dealii::Point<dim,double> extraction_point;
     if constexpr(dim==2){
-            extraction_point[0] = 0.36;
-            extraction_point[1] = 0.00546019;
+            extraction_point[0] = all_param.boundary_layer_extraction_param.extraction_point_x;
+            extraction_point[1] = all_param.boundary_layer_extraction_param.extraction_point_y;
         } else if constexpr(dim==3){
-            extraction_point[0] = 0.36;
-            extraction_point[1] = 0.00546019;
+            extraction_point[0] = all_param.boundary_layer_extraction_param.extraction_point_x;
+            extraction_point[1] = all_param.boundary_layer_extraction_param.extraction_point_y;
             extraction_point[2] = 0;
         }
-        int number_of_sampling = 200;
-
-    ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
+        int number_of_sampling = all_param.boundary_layer_extraction_param.number_of_sampling;
+        ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
 
     dealii::Point<3,double> observer_coord_ref;
-    observer_coord_ref[0] = 0.0;
-    observer_coord_ref[1] = 0.0;
-    observer_coord_ref[2] = 2.0;
+    observer_coord_ref[0] = all_param.amiet_param.observer_coord_ref_x;
+    observer_coord_ref[1] = all_param.amiet_param.observer_coord_ref_y;
+    observer_coord_ref[2] = all_param.amiet_param.observer_coord_ref_z;
 
     AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg,boundary_layer_extraction,observer_coord_ref);
 
