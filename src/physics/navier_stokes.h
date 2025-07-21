@@ -378,8 +378,22 @@ private:
     /// Returns the square of the magnitude of the tensor (i.e. the double dot product of a tensor with itself)
     real get_tensor_magnitude_sqr (const dealii::Tensor<2,dim,real> &tensor) const;
 
+public:
+   /// For post processing purposes (update comment later)
+    virtual dealii::Vector<double> post_compute_derived_quantities_vector (
+        const dealii::Vector<double>              &uh,
+        const std::vector<dealii::Tensor<1,dim> > &duh,
+        const std::vector<dealii::Tensor<2,dim> > &dduh,
+        const dealii::Tensor<1,dim>               &normals,
+        const dealii::Point<dim>                  &evaluation_points) const override; 
+    
+    /// For post processing purposes, sets the base names (with no prefix or suffix) of the computed quantities
+    virtual std::vector<std::string> post_get_names () const override;
+    
+    /// For post processing purposes, sets the interpretation of each computed quantity as either scalar or vector
+    virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const override;
+    
 };
-
 } // Physics namespace
 } // PHiLiP namespace
 
