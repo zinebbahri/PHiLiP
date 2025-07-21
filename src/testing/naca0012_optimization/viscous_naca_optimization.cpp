@@ -551,7 +551,7 @@ getDesignBoundConstraint(
                     //else { return zero_+0.1; }
                 } else if (grid_type == GridType::naca0012) {
                     if (USE_DESIGN_CONSTRAINT) {
-                    if(x>zero_) { return 0.1; }//ROL::ROL_INF<double>(); }
+                    if(x>zero_) { return /*0.1*/0.05; }//ROL::ROL_INF<double>(); }
                     else { return zero_; }
                     } else {
                         if(x>zero_) { return ROL::ROL_INF<double>(); }
@@ -573,7 +573,7 @@ getDesignBoundConstraint(
                     else        { return -ROL::ROL_INF<double>(); }
                 } else if (grid_type == GridType::naca0012) {
                     if (USE_DESIGN_CONSTRAINT) {
-                    if(x<zero_) { return -1.0*0.1; }//ROL::ROL_INF<double>(); }
+                    if(x<zero_) { return /*-1.0*0.1*/-1.0*0.05; }//ROL::ROL_INF<double>(); }
                     else { return zero_; }
                     } else {
                         if(x>zero_) { return -ROL::ROL_INF<double>(); }
