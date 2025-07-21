@@ -61,15 +61,81 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
     this->dg->solution.add(step_length, this->solution_update);
     this->dg->assemble_residual ();
     double new_residual = this->dg->get_residual_l2norm();
+
+    if(std::isnan(new_residual)){
+        // first save old solution that was obtained before nan
+        this->dg->solution = old_solution;
+        std::cout << "Writing solution to file" << std::endl;
+        const int n_cells = this->dg->triangulation->n_global_active_cells();
+        const int poly_degree = this->dg->get_min_fe_degree();
+        const std::string filename_soln =
+                        "pre_1_nan_solution_" + std::to_string(1) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+        const std::string filename_volnodes =
+                        "pre_1_nan_volnodes_" + std::to_string(1) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+        const dealii::IndexSet &soln_range = this->dg->solution.get_partitioner()->locally_owned_range();
+        const dealii::IndexSet &vol_range = this->dg->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
+
+        std::ofstream outfile_soln(filename_soln);
+        std::ofstream outfile_volnodes(filename_volnodes);
+
+        if( (!outfile_soln.is_open()) || (!outfile_volnodes.is_open()))
+        {
+            std::cout<<"Could not open file. Aborting.."<<std::endl;
+            std::abort();
+        }
+
+        for(const auto &isol : soln_range)
+        {
+            outfile_soln<<std::setprecision(16)<<this->dg->solution(isol)<<"\n";
+        }
+        for(const auto &ivol : vol_range)
+        {
+            outfile_volnodes<<std::setprecision(16)<<this->dg->high_order_grid->volume_nodes(ivol)<<"\n";
+        }
+        outfile_soln.close();
+        outfile_volnodes.close();
+
+        while(std::isnan(new_residual)){
+            this->dg->solution = old_solution;
+            // this->dg->solution.update_ghost_values();
+            this->pcout << "Found nan value, reducing step length and recomputing." << std::endl;
+            double step_reduction_bis = 0.25;
+            step_length = step_length * step_reduction_bis;
+            this->dg->solution.add(step_length, this->solution_update);
+            this->dg->assemble_residual ();
+            new_residual = this->dg->get_residual_l2norm();
+            this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+    }
+        this->pcout << "Exited nan loop" << std::endl;
+    }
+
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
 
     int iline = 0;
     for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
-        step_length = step_length * step_reduction;
-        this->dg->solution = old_solution;
-        this->dg->solution.add(step_length, this->solution_update);
-        this->dg->assemble_residual ();
-        new_residual = this->dg->get_residual_l2norm();
+            if(!std::isnan(new_residual)){
+            step_length = step_length * step_reduction;
+            this->dg->solution = old_solution;
+            this->dg->solution.add(step_length, this->solution_update);
+            this->dg->assemble_residual ();
+            new_residual = this->dg->get_residual_l2norm();
+
+        }
+        else{
+            while(std::isnan(new_residual)){
+                this->dg->solution = old_solution;
+                // this->dg->solution.update_ghost_values();
+                this->pcout << "Found nan value, reducing step length and recomputing." << std::endl;
+                double step_reduction_bis = 0.25;
+                step_length = step_length * step_reduction_bis;
+                this->dg->solution.add(step_length, this->solution_update);
+                this->dg->assemble_residual ();
+                new_residual = this->dg->get_residual_l2norm();
+                this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+     }
+            this->pcout << "Exited nan loop" << std::endl;
+        }
+
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
     if (iline == 0) this->CFL_factor *= 2.0;
@@ -80,13 +146,79 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         this->dg->solution.add(step_length, this->solution_update);
         this->dg->assemble_residual ();
         new_residual = this->dg->get_residual_l2norm();
+
+        //Checking if new residual is nan and reducing step length if that is the case
+        while(std::isnan(new_residual)){
+            this->dg->solution = old_solution;
+            // this->dg->solution.update_ghost_values();
+            this->pcout << "Found nan value, reducing step length and recomputing." << std::endl;
+            double step_reduction_bis = 0.25;
+            step_length = step_length * step_reduction_bis;
+            this->dg->solution.add(step_length, this->solution_update);
+            this->dg->assemble_residual ();
+            new_residual = this->dg->get_residual_l2norm();
+            this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+        }
+        this->pcout << "Exited nan loop" << std::endl;
+
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+        
         for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_2 ; ++iline) {
+           if(!std::isnan(new_residual)){
             step_length = step_length * step_reduction;
             this->dg->solution = old_solution;
             this->dg->solution.add(step_length, this->solution_update);
             this->dg->assemble_residual ();
             new_residual = this->dg->get_residual_l2norm();
+
+            }
+        else{
+            // first save old solution that was obtained before nan
+            this->dg->solution = old_solution;
+            std::cout << "Writing solution to file" << std::endl;
+            const int n_cells = this->dg->triangulation->n_global_active_cells();
+            const int poly_degree = this->dg->get_min_fe_degree();
+            const std::string filename_soln = 
+                            "pre_nan_solution_" + std::to_string(1) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+            const std::string filename_volnodes = 
+                            "pre_nan_volnodes_" + std::to_string(1) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+            const dealii::IndexSet &soln_range = this->dg->solution.get_partitioner()->locally_owned_range();
+            const dealii::IndexSet &vol_range = this->dg->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
+
+            std::ofstream outfile_soln(filename_soln);
+            std::ofstream outfile_volnodes(filename_volnodes);
+
+            if( (!outfile_soln.is_open()) || (!outfile_volnodes.is_open()))
+            {
+                std::cout<<"Could not open file. Aborting.."<<std::endl;
+                std::abort();
+            }
+
+            for(const auto &isol : soln_range)
+            {
+                outfile_soln<<std::setprecision(16)<<this->dg->solution(isol)<<"\n";
+            }
+            for(const auto &ivol : vol_range)
+            {
+                outfile_volnodes<<std::setprecision(16)<<this->dg->high_order_grid->volume_nodes(ivol)<<"\n";
+            }
+            outfile_soln.close();
+            outfile_volnodes.close();
+
+
+            while(std::isnan(new_residual)){
+                this->dg->solution = old_solution;
+                // this->dg->solution.update_ghost_values();
+                this->pcout << "Found nan value, reducing step length and recomputing." << std::endl;
+                double step_reduction_bis = 0.25;
+                step_length = step_length * step_reduction_bis;
+                this->dg->solution.add(step_length, this->solution_update);
+                this->dg->assemble_residual ();
+                new_residual = this->dg->get_residual_l2norm();
+                this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+            }
+            this->pcout << "Exited nan loop" << std::endl;
+        }
             this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
         }
     }
