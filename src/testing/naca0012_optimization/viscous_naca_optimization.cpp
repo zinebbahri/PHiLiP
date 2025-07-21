@@ -706,7 +706,7 @@ int ViscousNACAOptimization<dim,nstate>
 ::run_test () const
 {
     int test_error = 0;
-    int design_space = 1;
+    int design_space = 0;
     int read_solution = 0;
     std::filebuf filebuffer;
     if (this->mpi_rank == 2) filebuffer.open ("optimization.log", std::ios::out);
@@ -1064,11 +1064,11 @@ void ViscousNACAOptimization<dim,nstate>
         AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg_target,boundary_layer_extraction,observer_coord_ref);
 
         // Testing dIdXd
-        std::shared_ptr < AmietModelFunctional<dim,nstate,double,Triangulation> > ptr_acoustic_functional = std::make_shared <AmietModelFunctional<dim,nstate,double,Triangulation>>(acoustic_functional);
-        AcousticAdjoint <dim,nstate,double,Triangulation> amiet_adjoint(dg_target,ptr_acoustic_functional);
-        this->pcout << "Computing function derivative wrt FFD nodes..." << std::endl;
-        amiet_adjoint.compute_dIdXd(dg_target->high_order_grid);
-        this->pcout << "Computation is done..." << std::endl;
+        // std::shared_ptr < AmietModelFunctional<dim,nstate,double,Triangulation> > ptr_acoustic_functional = std::make_shared <AmietModelFunctional<dim,nstate,double,Triangulation>>(acoustic_functional);
+        // AcousticAdjoint <dim,nstate,double,Triangulation> amiet_adjoint(dg_target,ptr_acoustic_functional);
+        // this->pcout << "Computing function derivative wrt FFD nodes..." << std::endl;
+        // amiet_adjoint.compute_dIdXd(dg_target->high_order_grid);
+        // this->pcout << "Computation is done..." << std::endl;
 
         std::cout << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
                 << std::endl;
@@ -1478,8 +1478,8 @@ else{
     Teuchos::ParameterList parlist;
 
     LiftDragFunctional<dim,nstate,double> lift_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::lift );
-    // LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::total_drag );
-    LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
+    LiftDragFunctional<dim,nstate,double> total_drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::total_drag );
+    LiftDragFunctional<dim,nstate,double> pressure_drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::pressure_drag );
     // LiftDragFunctional<dim,nstate,double> drag_functional( dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag );
     ZMomentFunctional<dim,nstate,double> moment_functional( dg, {0.25, 0.0} );
     GeometricVolume<dim,nstate,double> volume_functional( dg );
@@ -1514,8 +1514,8 @@ else{
     AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg,boundary_layer_extraction,observer_coord_ref);
 
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
-              << ". Current drag = " << drag_functional.evaluate_functional()
-            //   << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
+              << ". Current total drag = " << total_drag_functional.evaluate_functional()
+              << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
               << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
               << ". Current Z-moment = " << moment_functional.evaluate_functional()
               << std::endl;
@@ -1601,12 +1601,12 @@ else{
         // auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, design_parameterization, precomputed_dXvdXp );
         // objective = drag_objective;
 
-        // auto acoustic_objective = ROL::makePtr<ROLAcousticObjectiveSimOpt<dim,nstate>>( dg, design_parameterization, precomputed_dXvdXp );
-        // objective = acoustic_objective;
+        auto acoustic_objective = ROL::makePtr<ROLAcousticObjectiveSimOpt<dim,nstate>>( dg, design_parameterization, precomputed_dXvdXp );
+        objective = acoustic_objective;
 
         // Additional lift constraint
         auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp );
-        objective = lift_objective;
+        // objective = lift_objective;
 
         nonlinear_inequalities_as_objectives.push_back(lift_objective);
         nonlinear_inequality_targets.push_back(lift_target);
@@ -1882,9 +1882,9 @@ else{
         }
     }
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
-              << ". Current drag = " << drag_functional.evaluate_functional()
+              << ". Current total drag = " << total_drag_functional.evaluate_functional()
               << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
-            //   << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
+              << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
               << ". Drag with quadratic lift penalty = " << objective->value(*simulation_variables, *control_variables, tol);
     static int resulting_optimization = 5000;
     std::cout << "Outputting final grid resulting_optimization: " << resulting_optimization << std::endl;
