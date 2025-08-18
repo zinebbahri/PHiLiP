@@ -88,14 +88,14 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     std::vector<std::vector<real>> local_dW_grad_int_i_dW(dim);
 
     // coord_of_total_sampling: vector contains coordinates of start and end points as well as all sampling quadrature points
-    int number_of_total_sampling = boundary_layer_extraction->number_of_total_sampling;
+    int number_of_total_sampling = this->boundary_layer_extraction->number_of_total_sampling;
     std::vector<dealii::Point<dim,real>> coord_of_total_sampling;
     coord_of_total_sampling.resize(number_of_total_sampling);
-    coord_of_total_sampling = boundary_layer_extraction->evaluate_straight_line_total_sampling_point_coord();
+    coord_of_total_sampling = this->boundary_layer_extraction->evaluate_straight_line_total_sampling_point_coord();
 
     std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>>> cell_index_and_ref_points_of_total_sampling(number_of_total_sampling);
 
-    cell_index_and_ref_points_of_total_sampling = boundary_layer_extraction->find_active_cell_around_points(mapping_collection,this->dg->dof_handler,coord_of_total_sampling);
+    cell_index_and_ref_points_of_total_sampling = this->boundary_layer_extraction->find_active_cell_around_points(mapping_collection,this->dg->dof_handler,coord_of_total_sampling);
 
     // Todo: W_int and W_grad_int needs to be communicated
     std::vector<std::array<FadType,nstate>> soln_of_total_sampling(number_of_total_sampling);
@@ -139,14 +139,14 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                 std::array<FadFadType,nstate> soln_of_sampling;
                 std::array<dealii::Tensor<1,dim,FadFadType>,nstate> soln_grad_of_sampling;
 
-                soln_of_sampling = boundary_layer_extraction->point_value(coord_of_total_sampling[sampling_index],
+                soln_of_sampling = this->boundary_layer_extraction->point_value(coord_of_total_sampling[sampling_index],
                                                                          mapping_collection,
                                                                          fe_collection,
                                                                          cell_index_and_ref_points_of_total_sampling[sampling_index],
                                                                          soln_coeff,
                                                                          cell_soln_dofs_indices);
 
-                soln_grad_of_sampling = boundary_layer_extraction->point_gradient(coord_of_total_sampling[sampling_index],
+                soln_grad_of_sampling = this->boundary_layer_extraction->point_gradient(coord_of_total_sampling[sampling_index],
                                                                                  mapping_collection,
                                                                                  fe_collection,
                                                                                  cell_index_and_ref_points_of_total_sampling[sampling_index],
@@ -230,7 +230,7 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     }
     AssertDimension(i_int_derivative, n_total_int_indep+dim*n_total_int_indep);
 
-    std::pair<real,real> values_free_stream = boundary_layer_extraction->evaluate_converged_free_stream_values(soln_of_total_sampling);
+    std::pair<real,real> values_free_stream = this->boundary_layer_extraction->evaluate_converged_free_stream_values(soln_of_total_sampling);
 
     this->pcout << "The non-dimensional speed_free_stream is: " << values_free_stream.first << std::endl;
 
@@ -240,9 +240,9 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
 
     this->pcout << "The speed_free_stream is: " << speed_free_stream << std::endl;
 
-    real boundary_layer_thickness = boundary_layer_extraction->evaluate_boundary_layer_thickness(coord_of_total_sampling,soln_of_total_sampling)*ref_length;
-    real edge_velocity            = boundary_layer_extraction->evaluate_edge_velocity(soln_of_total_sampling)*ref_speed;
-    real maximum_shear_stress     = boundary_layer_extraction->evaluate_maximum_shear_stress(soln_of_total_sampling,soln_grad_of_total_sampling)*ref_density*ref_speed*ref_speed;
+    real boundary_layer_thickness = this->boundary_layer_extraction->evaluate_boundary_layer_thickness(coord_of_total_sampling,soln_of_total_sampling)*ref_length;
+    real edge_velocity            = this->boundary_layer_extraction->evaluate_edge_velocity(soln_of_total_sampling)*ref_speed;
+    real maximum_shear_stress     = this->boundary_layer_extraction->evaluate_maximum_shear_stress(soln_of_total_sampling,soln_grad_of_total_sampling)*ref_density*ref_speed*ref_speed;
 
     this->pcout << "The boundary_layer_thickness is: " << boundary_layer_thickness << std::endl;
     this->pcout << "The edge_velocity is: "            << edge_velocity            << std::endl;
@@ -257,12 +257,12 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     maximum_shear_stress_fad.diff(i_int_derivative++,n_total_int_indep+dim*n_total_int_indep+3);
     AssertDimension(i_int_derivative, n_total_int_indep+dim*n_total_int_indep+3);
 
-    FadType displacement_thickness_fad       = boundary_layer_extraction->evaluate_displacement_thickness(soln_of_total_sampling)*ref_length;
-    FadType momentum_thickness_fad           = boundary_layer_extraction->evaluate_momentum_thickness(soln_of_total_sampling)*ref_length;
-    FadType friction_velocity_fad            = boundary_layer_extraction->evaluate_friction_velocity(soln_of_total_sampling,soln_grad_of_total_sampling)*ref_speed;
-    FadType pressure_gradient_tangential_fad = boundary_layer_extraction->evaluate_pressure_gradient_tangential(soln_of_total_sampling,soln_grad_of_total_sampling)*ref_density*ref_speed*ref_speed/ref_length;
-    FadType wall_shear_stress_fad            = boundary_layer_extraction->evaluate_wall_shear_stress(soln_of_total_sampling,soln_grad_of_total_sampling)*ref_density*ref_speed*ref_speed;
-    FadType kinematic_viscosity_fad          = boundary_layer_extraction->evaluate_kinematic_viscosity(soln_of_total_sampling)*ref_kinematic_viscosity;
+    FadType displacement_thickness_fad       = this->boundary_layer_extraction->evaluate_displacement_thickness(soln_of_total_sampling)*ref_length;
+    FadType momentum_thickness_fad           = this->boundary_layer_extraction->evaluate_momentum_thickness(soln_of_total_sampling)*ref_length;
+    FadType friction_velocity_fad            = this->boundary_layer_extraction->evaluate_friction_velocity(soln_of_total_sampling,soln_grad_of_total_sampling)*ref_speed;
+    FadType pressure_gradient_tangential_fad = this->boundary_layer_extraction->evaluate_pressure_gradient_tangential(soln_of_total_sampling,soln_grad_of_total_sampling)*ref_density*ref_speed*ref_speed/ref_length;
+    FadType wall_shear_stress_fad            = this->boundary_layer_extraction->evaluate_wall_shear_stress(soln_of_total_sampling,soln_grad_of_total_sampling)*ref_density*ref_speed*ref_speed;
+    FadType kinematic_viscosity_fad          = this->boundary_layer_extraction->evaluate_kinematic_viscosity(soln_of_total_sampling)*ref_kinematic_viscosity;
 
     this->pcout << "The displacement_thickness is: "       << displacement_thickness_fad.val()       << std::endl;
     this->pcout << "The momentum_thickness is: "           << momentum_thickness_fad.val()           << std::endl;
@@ -350,9 +350,9 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
             real perturb_size = 1e-5;
             perturbed_soln_of_total_sampling[int_i][s] += perturb_size;
 
-            real perturbed_boundary_layer_thickness = boundary_layer_extraction->evaluate_boundary_layer_thickness(coord_of_total_sampling,perturbed_soln_of_total_sampling)*ref_length;
-            real perturbed_edge_velocity            = boundary_layer_extraction->evaluate_edge_velocity(perturbed_soln_of_total_sampling)*ref_speed;
-            real perturbed_maximum_shear_stress     = boundary_layer_extraction->evaluate_maximum_shear_stress(perturbed_soln_of_total_sampling,perturbed_soln_grad_of_total_sampling)*ref_density*ref_speed*ref_speed;
+            real perturbed_boundary_layer_thickness = this->boundary_layer_extraction->evaluate_boundary_layer_thickness(coord_of_total_sampling,perturbed_soln_of_total_sampling)*ref_length;
+            real perturbed_edge_velocity            = this->boundary_layer_extraction->evaluate_edge_velocity(perturbed_soln_of_total_sampling)*ref_speed;
+            real perturbed_maximum_shear_stress     = this->boundary_layer_extraction->evaluate_maximum_shear_stress(perturbed_soln_of_total_sampling,perturbed_soln_grad_of_total_sampling)*ref_density*ref_speed*ref_speed;
         
             real d_boundary_layer_thickness = perturbed_boundary_layer_thickness - boundary_layer_thickness;
             real d_edge_velocity            = perturbed_edge_velocity - edge_velocity;
@@ -366,17 +366,17 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
         }
     }
 
-    // for(int i=0;i<n_total_int_indep;++i){
-    //     dIdW_int_FD[i] = dId_boundary_layer_thickness*d_boundary_layer_thickness_dW_int[i] 
-    //                    + dId_edge_velocity*d_edge_velocity_dW_int[i] 
-    //                    + dId_maximum_shear_stress*d_maximum_shear_stress_dW_int[i];
+    for(int i=0;i<n_total_int_indep;++i){
+        dIdW_int_FD[i] = dId_boundary_layer_thickness*d_boundary_layer_thickness_dW_int[i] 
+                       + dId_edge_velocity*d_edge_velocity_dW_int[i] 
+                       + dId_maximum_shear_stress*d_maximum_shear_stress_dW_int[i];
                 // writing OASPL value to file
         // std::ofstream outfile_dIdW_FD;
         // outfile_dIdW_FD.open("dIdW_FD.dat"); 
        
-        for(int i=0;i<n_total_int_indep;++i){
-        dIdW_int_FD[i] = dId_boundary_layer_thickness*d_boundary_layer_thickness_dW_int[i] 
-                       + dId_edge_velocity*d_edge_velocity_dW_int[i];
+        // for(int i=0;i<n_total_int_indep;++i){
+        // dIdW_int_FD[i] = dId_boundary_layer_thickness*d_boundary_layer_thickness_dW_int[i] 
+        //                + dId_edge_velocity*d_edge_velocity_dW_int[i];
         // outfile_dIdW_FD << dId_boundary_layer_thickness*d_boundary_layer_thickness_dW_int[i] << "\t\t";
         // outfile_dIdW_FD << dId_edge_velocity*d_edge_velocity_dW_int[i] << "\t\t";
         // outfile_dIdW_FD << dId_maximum_shear_stress*d_maximum_shear_stress_dW_int[i] << "\n";
@@ -391,7 +391,7 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                 real perturb_size = 1e-5;
                 perturbed_soln_grad_of_total_sampling[int_i][s][d] += perturb_size;
 
-                real perturbed_maximum_shear_stress = boundary_layer_extraction->evaluate_maximum_shear_stress(perturbed_soln_of_total_sampling,perturbed_soln_grad_of_total_sampling)*ref_density*ref_speed*ref_speed;
+                real perturbed_maximum_shear_stress = this->boundary_layer_extraction->evaluate_maximum_shear_stress(perturbed_soln_of_total_sampling,perturbed_soln_grad_of_total_sampling)*ref_density*ref_speed*ref_speed;
                 
                 real d_maximum_shear_stress = perturbed_maximum_shear_stress - maximum_shear_stress;
 
@@ -407,23 +407,30 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     }
 
     std::ofstream outfile_dIdW_term1;
-    std::ofstream outfile_dIdW_term2;
+    // std::ofstream outfile_dIdW_term2;
+    std::ofstream outfile_dIdW_term1_1;
+    std::ofstream outfile_dIdW_term1_2;
     outfile_dIdW_term1.open("dIdW_term1.dat");
-    outfile_dIdW_term2.open("dIdW_term2.dat");
+    outfile_dIdW_term1_1.open("dIdW_term1_1.dat");
+    outfile_dIdW_term1_2.open("dIdW_term1_2.dat");
+    // outfile_dIdW_term2.open("dIdW_term2.dat");
 
     std::vector<real> dIdw(this->dg->dof_handler.n_dofs());
     for(long unsigned int col=0;col<dIdw.size();++col){
         for(int row=0;row<n_total_int_indep;++row){
             dIdw[col] += (dIdW_int_AD[row]+dIdW_int_FD[row])*dW_int_dW[row][col];
             // dIdw[col] += (dIdW_int_AD[row])*dW_int_dW[row][col];
-            outfile_dIdW_term1 << (dIdW_int_AD[row]+dIdW_int_FD[row])*dW_int_dW[row][col] << "\n";
+            outfile_dIdW_term1_1 << dIdW_int_AD[row] << "\n";
+            outfile_dIdW_term1_2 << dIdW_int_FD[row] << "\n";
+            outfile_dIdW_term1 << dW_int_dW[row][col] << "\n";
+            // outfile_dIdW_term1 << (dIdW_int_AD[row]+dIdW_int_FD[row])*dW_int_dW[row][col] << "\n";
         }
     }
     for(long unsigned int col=0;col<dIdw.size();++col){
         for(int row=0;row<dim*n_total_int_indep;++row){
             dIdw[col] += (dIdW_grad_int_AD[row]+dIdW_grad_int_FD[row])*dW_grad_int_dW[row][col];
             // dIdw[col] += (dIdW_grad_int_AD[row])*dW_grad_int_dW[row][col];
-            outfile_dIdW_term2 << (dIdW_grad_int_AD[row]+dIdW_grad_int_FD[row])*dW_grad_int_dW[row][col] << "\n";
+            // outfile_dIdW_term2 << (dIdW_grad_int_AD[row]+dIdW_grad_int_FD[row])*dW_grad_int_dW[row][col] << "\n";
         }
     }
 
@@ -437,7 +444,9 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
         }
     }
     outfile_dIdW_term1.close();
-    outfile_dIdW_term2.close();
+    outfile_dIdW_term1_1.close();
+    outfile_dIdW_term1_2.close();
+    // outfile_dIdW_term2.close();
 
     this->current_functional_value = OASPL_fad.val();
 

@@ -140,7 +140,7 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dXsdXd(std::shared_pt
 //create ffd box
     const dealii::Point<dim> ffd_origin(-0.1,-0.1);
     const std::array<double,dim> ffd_rectangle_lengths = {{0.6,0.2}};
-    const std::array<unsigned int,dim> ffd_ndim_control_pts = {{15,3}};
+    const std::array<unsigned int,dim> ffd_ndim_control_pts = {{52,3}};
     FreeFormDeformation<dim> ffd(ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
     unsigned int n_design_variables = 0;

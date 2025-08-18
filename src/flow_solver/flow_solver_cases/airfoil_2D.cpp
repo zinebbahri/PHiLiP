@@ -85,26 +85,132 @@ std::shared_ptr<Triangulation> Airfoil2D<dim,nstate>::generate_grid() const
 
     dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
 
-//    // Assign a manifold to have curved geometry
-//    unsigned int manifold_id = 0;
-//    grid->reset_all_manifolds();
-//    grid->set_all_manifold_ids(manifold_id);
-//    // Set Flat manifold on the domain, but not on the boundary.
-//    grid->set_manifold(manifold_id, dealii::FlatManifold<2>());
-//
-//    manifold_id = 1;
-//    bool is_upper = true;
-//    const Grids::NACAManifold<2,1> upper_naca(airfoil_data.naca_id, is_upper);
-//    grid->set_all_manifold_ids_on_boundary(2,manifold_id); // upper airfoil side
-//    grid->set_manifold(manifold_id, upper_naca);
-//
-//    is_upper = false;
-//    const Grids::NACAManifold<2,1> lower_naca(airfoil_data.naca_id, is_upper);
-//    manifold_id = 2;
-//    grid->set_all_manifold_ids_on_boundary(3,manifold_id); // lower airfoil side
-//    grid->set_manifold(manifold_id, lower_naca); 
+    // const dealii::Point<dim> center(0.0,0.0);
+    //     const double        inner_radius = 0.5;
+    //     const double        outer_radius = 10;
+    //     const unsigned int  n_shells = 10;
+    //     const double        skewness = 3.0;
+    //     const unsigned int  n_cells_per_shell = 10;
+    //     const bool          colorize = true;
+    // dealii::GridGenerator::concentric_hyper_shells (*grid, center, inner_radius, outer_radius, n_shells, skewness, n_cells_per_shell, colorize);
+    // std::vector boundary_ids = grid->get_boundary_ids();
+    // for (long unsigned int i=0; i<sizeof(boundary_ids);++i){
+    //     std::cout << "BD " <<boundary_ids[i] << std::endl;
+    // }
+    // std::vector manifold_ids = grid->get_manifold_ids();
+    // std::ofstream outfile_init;
+    // outfile_init.open("init.dat");  
+    // for (long unsigned int i=0; i<sizeof(manifold_ids);++i){
+    //     outfile_init << manifold_ids[i] << std::endl;
+    // }
+    // as noted above: disable all non-Cartesian manifolds
+    // for demonstration purposes:
+    // const dealii::SphericalManifold<2> manifold(center);
+    // grid->reset_all_manifolds();
+    // grid->set_all_manifold_ids(0);
+    // for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
+    //     for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+    //         cell->face(face)->set_all_manifold_ids(0);
+    //     }
+    // }
 
-    // Set boundary type and design type
+    // std::vector re_manifold_ids = grid->get_manifold_ids();
+    // std::ofstream outfile_reset;
+    // outfile_reset.open("reset.dat");  
+    // for (long unsigned int i=0; i<sizeof(re_manifold_ids);++i){
+    //     outfile_reset<< re_manifold_ids[i] << std::endl;
+    // }
+    // outfile_reset.close();
+
+    // grid->set_manifold (0, manifold);
+
+    // std::vector post_manifold_ids = grid->get_manifold_ids();
+    // std::ofstream outfile_set;
+    // outfile_set.open("set.dat");  
+    // for (long unsigned int i=0; i<sizeof(post_manifold_ids);++i){
+    //     outfile_set << post_manifold_ids[i] << std::endl;
+    // }
+    // outfile_set.close();
+
+    // grid->refine_global (0.5);
+
+   // Assign a manifold to have curved geometry
+    std::vector manifold_ids = grid->get_manifold_ids();
+    std::vector boundary_ids = grid->get_boundary_ids();
+    // Creating output files to track boundary/manifold IDs
+    std::ofstream outfile_init;
+    std::ofstream outfile_init_BD;
+    std::ofstream outfile_init_face;
+    outfile_init.open("init.dat");  
+    outfile_init_BD.open("init_BD.dat");
+    outfile_init_face.open("init_face.dat");
+
+    for (long unsigned int i=0; i<sizeof(boundary_ids);++i){
+        outfile_init_BD << boundary_ids[i] << std::endl;
+    }
+    for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
+        for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if(cell->face(face)->at_boundary()){
+           outfile_init_face << cell->face(face)->boundary_id() << std::endl;
+            }
+        }
+    }
+    for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
+        for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if(cell->face(face)->at_boundary()){
+           outfile_init << cell->face(face)->manifold_id() << std::endl;
+            }
+        }
+    }
+    outfile_init.close();
+    outfile_init_BD.close();
+    outfile_init_face.close();
+   //resetting to flat manifold everywhere
+   unsigned int manifold_id = 0;
+   grid->reset_all_manifolds();
+
+    std::vector re_manifold_ids = grid->get_manifold_ids();
+    std::ofstream outfile_reset;
+    outfile_reset.open("reset.dat");  
+    for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
+        for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if(cell->face(face)->at_boundary()){
+           outfile_reset << cell->face(face)->boundary_id() << std::endl;
+            }
+        }
+    }
+    outfile_reset.close();
+
+   grid->set_all_manifold_ids(manifold_id);
+   // Set Flat manifold on the domain, but not on the boundary.
+   grid->set_manifold(manifold_id, dealii::FlatManifold<2>());
+   // Setting upper NACA manifold to elements with boundary ID = 2
+   manifold_id = 1;
+   bool is_upper = true;
+   const Grids::NACAManifold<2,1> upper_naca(airfoil_data.naca_id, is_upper);
+   grid->set_all_manifold_ids_on_boundary(2,manifold_id); // upper airfoil side
+   grid->set_manifold(manifold_id, upper_naca);
+   // Setting lower NACA manifold to elements with boundary ID = 3
+   is_upper = false;
+   const Grids::NACAManifold<2,1> lower_naca(airfoil_data.naca_id, is_upper);
+   manifold_id = 2;
+   grid->set_all_manifold_ids_on_boundary(3,manifold_id); // lower airfoil side
+   grid->set_manifold(manifold_id, lower_naca); 
+
+    std::vector post_manifold_ids = grid->get_manifold_ids();
+    std::ofstream outfile_set;
+    outfile_set.open("set.dat");  
+    // 
+    for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
+        for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+            if(cell->face(face)->at_boundary()){
+           outfile_set << cell->face(face)->manifold_id() << std::endl;
+            }
+        }
+    }
+    outfile_set.close();
+
+  //  Set boundary type and design type
     for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
         for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
             if (cell->face(face)->at_boundary()) {

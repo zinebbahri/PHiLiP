@@ -71,8 +71,8 @@
 namespace {
 const bool USE_LIFT_CONSTRAINT   = false;//true;
 const bool USE_MOMENT_CONSTRAINT = false;
-const bool USE_VOLUME_CONSTRAINT = true;
-const bool USE_DESIGN_CONSTRAINT = true;
+const bool USE_VOLUME_CONSTRAINT = false;//true;
+const bool USE_DESIGN_CONSTRAINT = false;//true;
 
 enum class OptimizationAlgorithm { full_space_birosghattas, full_space_composite_step, reduced_space_bfgs, reduced_space_newton, reduced_sqp };
 enum class Preconditioner { P2, P2A, P4, P4A, identity };
@@ -115,7 +115,7 @@ const unsigned int POLY_END = 1; // Can do until at least P2
 //const std::vector<unsigned int> n_des_var_list { 5, 10, 15, 20, 25, 30, 35, 40 };//20;
 //const std::vector<unsigned int> n_des_var_list { 30, 35, 40 };//20;
 //const std::vector<unsigned int> n_des_var_list { 5 };
-const std::vector<unsigned int> n_des_var_list { 10 };
+const std::vector<unsigned int> n_des_var_list { 50 };
 //const std::vector<unsigned int> n_des_var_list { 160, 320};//20;
 //const std::vector<unsigned int> n_des_var_list { 80, 160};//20;
 //const std::vector<unsigned int> n_des_var_list { 20, 40};//20;
@@ -707,7 +707,7 @@ int ViscousNACAOptimization<dim,nstate>
 {
     int test_error = 0;
     int design_space = 0;
-    int read_solution = 0;
+    int read_solution = 1;
     std::filebuf filebuffer;
     if (this->mpi_rank == 2) filebuffer.open ("optimization.log", std::ios::out);
     if (this->mpi_rank == 0) filebuffer.close();
@@ -1204,7 +1204,8 @@ int ViscousNACAOptimization<dim,nstate>
         }
         case OptimizationAlgorithm::reduced_space_newton: {
             opt_output_name = "reduced_space_newton";
-            descent_method = "Newton-Krylov";
+            // descent_method = "Newton-Krylov";
+            descent_method = "Steepest Descent";
             break;
         }
     }
@@ -1269,8 +1270,8 @@ int ViscousNACAOptimization<dim,nstate>
         ffd_origin = dealii::Point<dim> (-0.60,-0.51);
         ffd_rectangle_lengths = std::array<double,dim> {{1.0+0.2,1.0+0.02}};
     } else if (grid_type == GridType::naca0012) {
-        ffd_origin = dealii::Point<dim> (0.0,-0.061);
-        ffd_rectangle_lengths = std::array<double,dim> {{0.999,0.122}};
+        ffd_origin = dealii::Point<dim> (-0.025,-0.035);
+        ffd_rectangle_lengths = std::array<double,dim> {{0.45,0.07}};
         //    ffd_origin = dealii::Point<dim> (-0.1,-0.1);
         //    ffd_rectangle_lengths = std::array<double,dim> {{0.6,0.2}};
             //ffd_rectangle_lengths = std::array<double,dim> {{1.0,0.122}};
@@ -1493,30 +1494,30 @@ else{
     std::ofstream outfile_acoustic;
     outfile_acoustic.open("sound_level.dat");
 
-    dealii::Point<dim,double> extraction_point;
-    if constexpr(dim==2){
-            extraction_point[0] = param.boundary_layer_extraction_param.extraction_point_x;
-            extraction_point[1] = param.boundary_layer_extraction_param.extraction_point_y;
-        } else if constexpr(dim==3){
-            extraction_point[0] = param.boundary_layer_extraction_param.extraction_point_x;
-            extraction_point[1] = param.boundary_layer_extraction_param.extraction_point_y;
-            extraction_point[2] = 0;
-        }
-        int number_of_sampling = param.boundary_layer_extraction_param.number_of_sampling;
+    // dealii::Point<dim,double> extraction_point;
+    // if constexpr(dim==2){
+    //         extraction_point[0] = param.boundary_layer_extraction_param.extraction_point_x;
+    //         extraction_point[1] = param.boundary_layer_extraction_param.extraction_point_y;
+    //     } else if constexpr(dim==3){
+    //         extraction_point[0] = param.boundary_layer_extraction_param.extraction_point_x;
+    //         extraction_point[1] = param.boundary_layer_extraction_param.extraction_point_y;
+    //         extraction_point[2] = 0;
+    //     }
+    //     int number_of_sampling = param.boundary_layer_extraction_param.number_of_sampling;
 
-    ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
+    // ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
 
-    dealii::Point<3,double> observer_coord_ref;
-    observer_coord_ref[0] = param.amiet_param.observer_coord_ref_x;
-    observer_coord_ref[1] = param.amiet_param.observer_coord_ref_y;
-    observer_coord_ref[2] = param.amiet_param.observer_coord_ref_z;
+    // dealii::Point<3,double> observer_coord_ref;
+    // observer_coord_ref[0] = param.amiet_param.observer_coord_ref_x;
+    // observer_coord_ref[1] = param.amiet_param.observer_coord_ref_y;
+    // observer_coord_ref[2] = param.amiet_param.observer_coord_ref_z;
 
-    AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg,boundary_layer_extraction,observer_coord_ref);
+    // AmietModelFunctional<dim,nstate,double,Triangulation> acoustic_functional = AmietModelFunctional<dim,nstate,double,Triangulation>(dg,boundary_layer_extraction,observer_coord_ref);
 
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current total drag = " << total_drag_functional.evaluate_functional()
               << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
-              << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
+            //   << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
               << ". Current Z-moment = " << moment_functional.evaluate_functional()
               << std::endl;
 
@@ -1598,11 +1599,11 @@ else{
 
     if (optimization_problem_type == OptimizationProblemType::drag_minimization) {
         // Objective
-        // auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, design_parameterization, precomputed_dXvdXp );
-        // objective = drag_objective;
+        auto drag_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( pressure_drag_functional, design_parameterization, precomputed_dXvdXp );
+        objective = drag_objective;
 
-        auto acoustic_objective = ROL::makePtr<ROLAcousticObjectiveSimOpt<dim,nstate>>( dg, design_parameterization, precomputed_dXvdXp );
-        objective = acoustic_objective;
+        // auto acoustic_objective = ROL::makePtr<ROLAcousticObjectiveSimOpt<dim,nstate>>( dg, design_parameterization, precomputed_dXvdXp );
+        // objective = acoustic_objective;
 
         // Additional lift constraint
         auto lift_objective = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp );
@@ -1883,7 +1884,7 @@ else{
     }
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current total drag = " << total_drag_functional.evaluate_functional()
-              << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
+            //   << ". Current OASPL = " << acoustic_functional.evaluate_functional(true,true,false)
               << ". Current pressure drag = " << pressure_drag_functional.evaluate_functional()
               << ". Drag with quadratic lift penalty = " << objective->value(*simulation_variables, *control_variables, tol);
     static int resulting_optimization = 5000;

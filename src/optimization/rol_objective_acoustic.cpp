@@ -67,6 +67,7 @@ void ROLAcousticObjectiveSimOpt<dim,nstate>::update(
     const ROL::Vector<double> &des_var_ctl,
     bool /*flag*/, int /*iter*/)
 {
+    std::cout << "Updating" << std::endl;
     this->functional->set_state(ROL_vector_to_dealii_vector_reference(des_var_sim));
 
     design_var =  ROL_vector_to_dealii_vector_reference(des_var_ctl);
@@ -113,11 +114,12 @@ double ROLAcousticObjectiveSimOpt<dim,nstate>::value(
     // In that scenario, tol is the constraint norm.
     // If the flow has not converged (>1e-5 or is nan), simply return a high functional.
     // This is likely happening in the linesearch while optimizing in the reduced-space.
+    std::cout << "Computing value" << std::endl;
     if (tol > 1e-5 || std::isnan(tol)) return 1e200;
     update(des_var_sim, des_var_ctl);
 
     const bool compute_dIdW = true;
-    const bool compute_dIdX = false;
+    const bool compute_dIdX = true;//false;
     const bool compute_d2I = false;
     return this->functional->evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
 
@@ -131,10 +133,11 @@ void ROLAcousticObjectiveSimOpt<dim,nstate>::gradient_1(
     const ROL::Vector<double> &des_var_ctl,
     double &/*tol*/ )
 {
+    std::cout << "Computing gradient 1" << std::endl;
     update(des_var_sim, des_var_ctl);
 
     const bool compute_dIdW = true;
-    const bool compute_dIdX = false;
+    const bool compute_dIdX = true;//false;
     const bool compute_d2I = false;
     this->functional->evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
     auto &dIdW = ROL_vector_to_dealii_vector_reference(gradient_sim);
@@ -149,6 +152,7 @@ void ROLAcousticObjectiveSimOpt<dim,nstate>::gradient_2(
     double &/*tol*/ )
     
 {
+    std::cout << "Computing gradient 2" << std::endl;
     update(des_var_sim, des_var_ctl);
 
     // pointer to functional

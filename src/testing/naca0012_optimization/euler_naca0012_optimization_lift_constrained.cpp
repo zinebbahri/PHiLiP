@@ -91,8 +91,8 @@ const std::vector<OptimizationAlgorithm> opt_list {
     OptimizationAlgorithm::reduced_space_bfgs,
     };
 
-const unsigned int POLY_START = 1;
-const unsigned int POLY_END = 1; // Can do until at least P2
+const unsigned int POLY_START = 0;
+const unsigned int POLY_END = 0; // Can do until at least P2
 
 //const unsigned int n_des_var_start = 10;//20;
 //const unsigned int n_des_var_end   = 40;//100;

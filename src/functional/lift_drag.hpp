@@ -161,7 +161,7 @@ public:
         , functional_type(functional_type)
         // , NS_fad_fad(dynamic_cast< Physics::NavierStokes<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
         // , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadFadType> &>(*(this->physics_fad_fad)))
-        // , euler_fad_fad(dynamic_cast< Physics::Euler<dim,dim+2,FadType> &>((PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler))))
+        // , euler_fad_fad(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler, nullptr))
         // , euler_fad_fad(std::dynamic_pointer_cast< Physics::Euler<dim,dim+2,FadType> >(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(dg_input->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::euler)))
         , angle_of_attack(0.0)
         , rotation_matrix(initialize_rotation_matrix(angle_of_attack))
