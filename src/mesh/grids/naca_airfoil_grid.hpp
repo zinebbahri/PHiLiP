@@ -15,7 +15,7 @@ void naca_airfoil(
     dealii::GridGenerator::Airfoil::AdditionalData airfoil_data);
 
 /// NACA airfoil manifold.
-template<int dim = 2, int chartdim = 1>
+template<int dim = 2, int chartdim = 2>
 class NACAManifold: public dealii::ChartManifold<dim,dim,chartdim> {
 protected:
     const std::string serial_number; ///< NACA serial number. String should be 4 char long.

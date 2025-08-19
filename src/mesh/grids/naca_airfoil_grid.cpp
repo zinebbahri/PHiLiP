@@ -1,8 +1,13 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 
+#include <stdlib.h>
+#include <iostream>
+#include <fstream>
 #include <Sacado.hpp>
 #include "naca_airfoil_grid.hpp"
+#include <deal.II/grid/grid_out.h>
+#include <deal.II/base/utilities.h>
 
 namespace PHiLiP {
 namespace Grids {
@@ -38,17 +43,29 @@ void naca_airfoil(
     // // Set Flat manifold on the domain, but not on the boundary.
     grid.set_manifold(manifold_id, dealii::FlatManifold<2>());
 
-    manifold_id = 1;
-    bool is_upper = true;
-    const NACAManifold<2,1> upper_naca(airfoil_data.naca_id, is_upper);
-    grid.set_all_manifold_ids_on_boundary(2,manifold_id); // upper airfoil side
-    grid.set_manifold(manifold_id, upper_naca);
+    bool is_upper = false;
+    const NACAManifold<2,2> lower_naca(airfoil_data.naca_id, is_upper);
 
-    is_upper = false;
-    const NACAManifold<2,1> lower_naca(airfoil_data.naca_id, is_upper);
+    dealii::GridTools::transform (
+        [&lower_naca](const dealii::Point<2> &chart_point) {
+          return lower_naca.push_forward(chart_point);}, grid);
+    std::cout << "Lower Transformed" << std::endl;
+
     manifold_id = 2;
     grid.set_all_manifold_ids_on_boundary(3,manifold_id); // lower airfoil side
     grid.set_manifold(manifold_id, lower_naca);
+
+    manifold_id = 1;
+    is_upper = true;
+    const NACAManifold<2,2> upper_naca(airfoil_data.naca_id, is_upper);
+
+    dealii::GridTools::transform (
+        [&upper_naca](const dealii::Point<2> &chart_point) {
+          return upper_naca.push_forward(chart_point);}, grid);
+    std::cout << "Upper Transformed" << std::endl;
+
+    grid.set_all_manifold_ids_on_boundary(2,manifold_id); // upper airfoil side
+    grid.set_manifold(manifold_id, upper_naca);
 
 
     // manifold_id = 0;
@@ -72,6 +89,9 @@ void naca_airfoil(
             }
         }
     }
+    std::ofstream output("grid.vtu");
+    dealii::GridOut grid_out;
+    grid_out.write_vtu (grid, output);
 }
 
 template<int dim, int chartdim>
@@ -84,7 +104,7 @@ NACAManifold<dim,chartdim>::NACAManifold(const std::string serial_number, const 
                        (unsigned int)(serial_number[2] - '0'),
                        (unsigned int)(serial_number[3] - '0') }})
     , thickness(static_cast<double>( (10 * serial_digits[2] + serial_digits[3]) / 100.0))
-{ }
+{ std::cout << is_upper << std::endl;}
 
 
 template<int dim, int chartdim>
@@ -94,23 +114,23 @@ dealii::Point<dim,real> NACAManifold<dim,chartdim>::push_forward_mapping(const d
     dealii::Point<dim,real> physical_point;
 
     const real x = chart_point[0];
-    if (x > 1.0) {
+    if (x > 1 || x < 0) {
         physical_point[0] = x;
-        physical_point[1] = 0.0;
+        physical_point[1] = chart_point[1];
         return physical_point;
     }
-
+    real x_c = x/1/*0.4*/;
     const real thickness_ad = thickness;
     real y_t = 5 * thickness_ad *
-                 (0.2969 * std::pow(x, 0.5) - 0.126 * x -
-                  0.3516 * std::pow(x, 2) + 0.2843 * std::pow(x, 3) -
-                  0.1036 * std::pow(x, 4)); // half thickness_ad at a position x
+                 (0.2969 * std::pow(x_c, 0.5) - 0.126 * x_c -
+                  0.3516 * std::pow(x_c, 2) + 0.2843 * std::pow(x_c, 3) -
+                  0.1036 * std::pow(x_c, 4)); // half thickness_ad at a position x
 
     if (!is_upper) {
         y_t *= -1.0;
     }
     if (serial_digits[0] == 0 && serial_digits[1] == 0) { // is symmetric
-        physical_point[0] = x;
+        physical_point[0] = x_c;
         physical_point[1] = y_t;
     } else { // is asymmetric
         const real m = 1.0 * serial_digits[0] / 100; // max. chamber
@@ -130,7 +150,6 @@ dealii::Point<dim,real> NACAManifold<dim,chartdim>::push_forward_mapping(const d
         physical_point[0] = x - y_t * std::sin(theta);
         physical_point[1] = y_c + y_t * std::cos(theta);
     }
-
     return physical_point;
 }
 
@@ -138,7 +157,8 @@ dealii::Point<dim,real> NACAManifold<dim,chartdim>::push_forward_mapping(const d
 template<int dim, int chartdim>
 dealii::Point<dim> NACAManifold<dim,chartdim>::push_forward(const dealii::Point<chartdim> &chart_point) const
 {
-    return push_forward_mapping<double>(chart_point);
+    dealii::Point<chartdim,double> chart_point_mapping(chart_point[0],chart_point[1]);
+    return push_forward_mapping<double>(chart_point_mapping);
 }
 
 template<int dim, int chartdim>
